@@ -1,6 +1,113 @@
-import { Calendar, MoreVertical, Plus, Search } from "lucide-react";
+import { useState, useEffect, useCallback } from "react";
+import { Calendar, MoreVertical, Plus, Search, Loader2, X, AlertCircle, Trash2, CheckCircle2, TrendingUp, User, Building2 } from "lucide-react";
+import { getActiveProjects, createProject, updateProjectProgress, updateProjectStatus, softDeleteProject } from "../services/projectService";
+import type { ProjectWithMembers } from "../types/models";
 
 export function ProjectsView() {
+  const [projects, setProjects] = useState<ProjectWithMembers[]>([]);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [activeMenuId, setActiveMenuId] = useState<string | null>(null);
+
+  // New project form state
+  const [name, setName] = useState("");
+  const [description, setDescription] = useState("");
+  const [client, setClient] = useState("");
+  const [targetDate, setTargetDate] = useState("");
+
+  // Load projects
+  const loadProjects = useCallback(async () => {
+    setLoading(true);
+    try {
+      const projs = await getActiveProjects();
+      setProjects(projs);
+    } catch (err) {
+      console.error("Error loading projects:", err);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadProjects();
+  }, [loadProjects]);
+
+  // Handle create project
+  const handleCreateProject = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!name.trim()) return;
+
+    setSubmitting(true);
+    try {
+      await createProject({
+        name: name.trim(),
+        description: description.trim() || undefined,
+        client: client.trim() || undefined,
+        target_date: targetDate || undefined,
+      });
+
+      // Reset form
+      setName("");
+      setDescription("");
+      setClient("");
+      setTargetDate("");
+      setShowCreateModal(false);
+
+      // Reload
+      await loadProjects();
+    } catch (err) {
+      console.error("Error creating project:", err);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  // Quick Action: Update Progress
+  const handleUpdateProgress = async (id: string, progress: number) => {
+    try {
+      await updateProjectProgress(id, progress);
+      setActiveMenuId(null);
+      await loadProjects();
+    } catch (err) {
+      console.error("Error updating progress:", err);
+    }
+  };
+
+  // Quick Action: Update Status
+  const handleUpdateStatus = async (id: string, status: 'active' | 'completed' | 'delayed') => {
+    try {
+      await updateProjectStatus(id, status);
+      setActiveMenuId(null);
+      await loadProjects();
+    } catch (err) {
+      console.error("Error updating status:", err);
+    }
+  };
+
+  // Quick Action: Soft Delete
+  const handleDeleteProject = async (id: string) => {
+    if (!confirm("¿Estás seguro de que querés archivar este proyecto?")) return;
+    try {
+      await softDeleteProject(id);
+      setActiveMenuId(null);
+      await loadProjects();
+    } catch (err) {
+      console.error("Error archiving project:", err);
+    }
+  };
+
+  // Filter projects by search
+  const filteredProjects = projects.filter((project) => {
+    const term = searchQuery.toLowerCase();
+    return (
+      project.name.toLowerCase().includes(term) ||
+      (project.description || "").toLowerCase().includes(term) ||
+      (project.client || "").toLowerCase().includes(term)
+    );
+  });
+
   return (
     <div className="max-w-[1200px] mx-auto px-4 md:px-8 py-8 mb-24 md:mb-12">
       {/* Page Header & Search */}
@@ -14,128 +121,294 @@ export function ProjectsView() {
           <Search className="w-5 h-5 absolute left-4 top-1/2 -translate-y-1/2 text-outline-variant" />
           <input 
             type="text" 
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Buscar proyectos..." 
             className="w-full pl-12 pr-4 py-3 bg-warm-white border border-stone-bg rounded-xl focus:ring-2 focus:ring-sage-accent/10 focus:border-sage-accent outline-none transition-all text-sm text-on-surface"
           />
         </div>
       </div>
 
-      {/* Project Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-
-        {/* Project Card 1: Completed */}
-        <div className="bg-surface-container-lowest rounded-xl shadow-[0_2px_8px_rgba(0,0,0,0.04)] overflow-hidden flex flex-col hover:bg-stone-bg/50 transition-colors duration-300 group">
-          <div className="h-1 bg-sage-accent w-full"></div>
-          <div className="p-6 flex flex-col h-full hover:-translate-y-1 transition-transform duration-300">
-            <div className="flex justify-between items-start mb-4">
-              <span className="px-3 py-1 rounded-full bg-secondary-container text-on-secondary-container text-[11px] font-semibold tracking-wide uppercase">Completado</span>
-              <button className="text-outline-variant hover:text-primary">
-                <MoreVertical className="w-5 h-5" />
-              </button>
+      {/* Projects Grid / List */}
+      {loading ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {Array(3).fill(null).map((_, i) => (
+            <div key={i} className="bg-surface-container-lowest rounded-xl p-6 h-60 animate-pulse border border-stone-bg/50">
+              <div className="h-4 bg-stone-bg rounded w-1/3 mb-4" />
+              <div className="h-6 bg-stone-bg rounded w-3/4 mb-2" />
+              <div className="h-4 bg-stone-bg rounded w-5/6 mb-8" />
+              <div className="h-2 bg-stone-bg rounded w-full mb-2" />
+              <div className="h-8 bg-stone-bg rounded w-20" />
             </div>
-            <h3 className="text-[20px] font-semibold text-petroleum-blue mb-2 group-hover:text-primary transition-colors tracking-tight">Identidad Visual Arquetipo</h3>
-            <p className="text-sm text-on-surface-variant mb-8 flex-grow leading-relaxed">Rediseño integral de la marca para la firma de arquitectura Arquetipo en Madrid.</p>
-            
-            <div className="space-y-5">
-              <div className="flex items-center gap-2 text-outline">
-                <Calendar className="w-[18px] h-[18px]" />
-                <span className="text-xs font-medium">Finalizado: 12 Oct, 2023</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <div className="flex -space-x-2">
-                  <div className="w-8 h-8 rounded-full border-2 border-surface-container-lowest overflow-hidden bg-stone-bg cursor-pointer">
-                      <img src="https://lh3.googleusercontent.com/aida-public/AB6AXuDjfzD_uXctcCxU_QsUhw_dkm8JXouLUGFl3XVZG0PdYcF4i3shVXGlr3lQ5LxBqR2bH_TG94FCRNS7pjf6AWvhC2HP5S3HCvUOt-gzKHg3-9eBKuHPtJ3AxBgi6q1xwMVtpHlKMH_kpTIDAQFjsCvP6Ln9xoHw54dRGofz5qJ_ZjOg2d4BpGnyqV6cset5Lq2Xman_cChuaoG_8TEYPFaAjG7h7c9cGxALSlhPtrwoOYoOcHYaUrTgt2umoPrunO98nm9d9a2YdA" className="w-full h-full object-cover" />
-                  </div>
-                  <div className="w-8 h-8 rounded-full border-2 border-surface-container-lowest overflow-hidden bg-stone-bg cursor-pointer">
-                      <img src="https://lh3.googleusercontent.com/aida-public/AB6AXuDUDAfBL0EFbTQqFsg-11qTDaqbDvL3UkQrTAl0KywKziNKCZ2bdPAOEyaCn6kJCjYG6jSIfuUahB34w7E0v7QuL7V_buOqYvKaXydZfFzWlpvK-lYcvt8mhqsZvtRCJjV1O2raJT2bx7JFP4tG6i4ehImBKCwA6L2w7-9vzewH74aFF_AwQCWQOucxBoa215vIjmpJAfLMDtOrpO6BLch9O5_x6jL5_3KrQ_Oeoo_N-87VUke63pwXBy1TVJ4Op82dQJFJOs65wg" className="w-full h-full object-cover" />
-                  </div>
-                  <div className="w-8 h-8 rounded-full border-2 border-surface-container-lowest bg-stone-bg flex items-center justify-center text-[10px] font-bold text-petroleum-blue z-10">+2</div>
-                </div>
-                <span className="text-sm text-sage-accent font-semibold">100%</span>
-              </div>
-              <div className="w-full bg-stone-bg h-1.5 rounded-full overflow-hidden">
-                <div className="bg-sage-accent h-full w-full"></div>
-              </div>
-            </div>
-          </div>
+          ))}
         </div>
-
-        {/* Project Card 2: In Progress */}
-        <div className="bg-surface-container-lowest rounded-xl shadow-[0_2px_8px_rgba(0,0,0,0.04)] overflow-hidden flex flex-col hover:bg-stone-bg/50 transition-colors duration-300 group">
-          <div className="h-1 bg-petroleum-blue w-full"></div>
-          <div className="p-6 flex flex-col h-full hover:-translate-y-1 transition-transform duration-300">
-            <div className="flex justify-between items-start mb-4">
-              <span className="px-3 py-1 rounded-full bg-primary-fixed text-on-primary-fixed text-[11px] font-semibold tracking-wide uppercase">En curso</span>
-              <button className="text-outline-variant hover:text-primary">
-                 <MoreVertical className="w-5 h-5" />
-              </button>
-            </div>
-            <h3 className="text-[20px] font-semibold text-petroleum-blue mb-2 group-hover:text-primary transition-colors tracking-tight">Portal E-commerce Sage</h3>
-            <p className="text-sm text-on-surface-variant mb-8 flex-grow leading-relaxed">Desarrollo de plataforma B2B con integración de inventario en tiempo real.</p>
+      ) : filteredProjects.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-20 text-center bg-surface-container-lowest rounded-2xl p-8 border border-stone-bg/50 shadow-sm">
+          <AlertCircle className="w-12 h-12 text-outline mb-4" />
+          <h3 className="text-lg font-semibold text-petroleum-blue mb-1">No se encontraron proyectos</h3>
+          <p className="text-sm text-on-surface-variant max-w-sm">
+            {searchQuery ? "No hay proyectos que coincidan con tu búsqueda." : "Crea tu primer proyecto para comenzar a colaborar con tu equipo."}
+          </p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {filteredProjects.map((project) => {
+            const isCompleted = project.status === "completed";
+            const isDelayed = project.status === "delayed";
             
-            <div className="space-y-5">
-              <div className="flex items-center gap-2 text-outline">
-                <Calendar className="w-[18px] h-[18px]" />
-                <span className="text-xs font-medium">Entrega: 24 Nov, 2023</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <div className="flex -space-x-2">
-                   <div className="w-8 h-8 rounded-full border-2 border-surface-container-lowest overflow-hidden bg-stone-bg cursor-pointer">
-                      <img src="https://lh3.googleusercontent.com/aida-public/AB6AXuDOdpGihqSgpCiri1RBM9VXb7E9R7tZEUd-rCxSwFV8Y3-4SPiF-uMzwbNnOf96OY1FZZiHDARoMmdjuszf5T-SnwuyKBxV_CcgaDOuUaNxszoMwiOMgllSTauQFd2c6PsO1AiJHO9tS_PORbqrcTA_z_fngWbtOk-NJVkpXneBwkTmkPXvSPsDvc8lH2OqKn-Bs8Fz-2F2DSEbcrM6T9cC1p9j2XFxK36QZwHtAF7KKOCo3tBTkaH6vsS2O7vkbJz-SNftuOxwBw" className="w-full h-full object-cover" />
+            let statusLabel = "En curso";
+            let statusClass = "bg-primary-fixed text-on-primary-fixed";
+            let barColor = "bg-petroleum-blue";
+            if (isCompleted) {
+              statusLabel = "Completado";
+              statusClass = "bg-secondary-container text-on-secondary-container";
+              barColor = "bg-sage-accent";
+            } else if (isDelayed) {
+              statusLabel = "Retrasado";
+              statusClass = "bg-error-container text-on-error-container";
+              barColor = "bg-soft-terracotta";
+            }
+
+            return (
+              <div 
+                key={project.id} 
+                className="bg-surface-container-lowest rounded-xl shadow-[0_2px_8px_rgba(0,0,0,0.04)] overflow-visible flex flex-col hover:bg-stone-bg/50 transition-all duration-300 group border border-stone-bg/50 relative"
+              >
+                <div className={`h-1 w-full ${barColor}`} />
+                <div className="p-6 flex flex-col h-full transition-transform duration-300">
+                  <div className="flex justify-between items-start mb-4 relative">
+                    <span className={`px-3 py-1 rounded-full text-[11px] font-semibold tracking-wide uppercase ${statusClass}`}>
+                      {statusLabel}
+                    </span>
+                    <div className="relative">
+                      <button 
+                        onClick={() => setActiveMenuId(activeMenuId === project.id ? null : project.id)}
+                        className="text-outline-variant hover:text-primary p-1 rounded-full hover:bg-stone-bg transition-colors"
+                      >
+                        <MoreVertical className="w-5 h-5" />
+                      </button>
+                      
+                      {/* Context menu */}
+                      {activeMenuId === project.id && (
+                        <>
+                          <div className="fixed inset-0 z-40" onClick={() => setActiveMenuId(null)} />
+                          <div className="absolute right-0 mt-2 w-48 bg-surface-container-lowest rounded-xl shadow-xl border border-stone-bg py-2 z-50 animate-in fade-in slide-in-from-top-2 duration-150">
+                            <div className="px-3 py-1.5 text-[10px] font-bold text-outline uppercase tracking-wider">Acciones rápidas</div>
+                            
+                            {!isCompleted && (
+                              <button 
+                                onClick={() => handleUpdateProgress(project.id, 100)}
+                                className="w-full text-left px-4 py-2 text-xs text-on-surface hover:bg-stone-bg transition-colors flex items-center gap-2"
+                              >
+                                <CheckCircle2 className="w-4 h-4 text-sage-accent" /> Marcar Completado
+                              </button>
+                            )}
+
+                            {isCompleted && (
+                              <button 
+                                onClick={() => handleUpdateProgress(project.id, 50)}
+                                className="w-full text-left px-4 py-2 text-xs text-on-surface hover:bg-stone-bg transition-colors flex items-center gap-2"
+                              >
+                                <TrendingUp className="w-4 h-4 text-petroleum-blue" /> Reabrir Proyecto
+                              </button>
+                            )}
+
+                            {!isDelayed && !isCompleted && (
+                              <button 
+                                onClick={() => handleUpdateStatus(project.id, "delayed")}
+                                className="w-full text-left px-4 py-2 text-xs text-on-surface hover:bg-stone-bg transition-colors flex items-center gap-2"
+                              >
+                                <AlertCircle className="w-4 h-4 text-soft-terracotta" /> Marcar Retrasado
+                              </button>
+                            )}
+
+                            {isDelayed && (
+                              <button 
+                                onClick={() => handleUpdateStatus(project.id, "active")}
+                                className="w-full text-left px-4 py-2 text-xs text-on-surface hover:bg-stone-bg transition-colors flex items-center gap-2"
+                              >
+                                <TrendingUp className="w-4 h-4 text-petroleum-blue" /> Quitar Retrasado
+                              </button>
+                            )}
+
+                            <div className="border-t border-stone-bg my-1" />
+                            <button 
+                              onClick={() => handleDeleteProject(project.id)}
+                              className="w-full text-left px-4 py-2 text-xs text-soft-terracotta hover:bg-error-container/20 transition-colors flex items-center gap-2"
+                            >
+                              <Trash2 className="w-4 h-4 text-soft-terracotta" /> Archivar
+                            </button>
+                          </div>
+                        </>
+                      )}
+                    </div>
                   </div>
-                  <div className="w-8 h-8 rounded-full border-2 border-surface-container-lowest overflow-hidden bg-stone-bg cursor-pointer">
-                      <img src="https://lh3.googleusercontent.com/aida-public/AB6AXuAEC_AmP2eYtfwV9EgvamUWaP1M_4ALbiLAAeh3NxTU82NE6cS2f4oiWNRh0mKz74MB5kt3Bup0MZIoVV70GjuyTt_WYwXE0aG19D83ojeVn8ljvBX20akSQwrWH2VBzQdG-_0aBiqNSxevztIvguPwoXmU2KocwIrnQxXrc0RcNFaCKIOg21gsINDxiVihYvEtP3gRkgG1BzEe4iGejaIFxxl8Rs3DPY5YHfF7ZMf953qtsmuV9ZCWjFgwvTQjCNHb0PmTy_nkAA" className="w-full h-full object-cover" />
+
+                  <h3 className="text-[20px] font-semibold text-petroleum-blue mb-2 group-hover:text-primary transition-colors tracking-tight line-clamp-1">
+                    {project.name}
+                  </h3>
+                  
+                  <p className="text-sm text-on-surface-variant mb-6 flex-grow leading-relaxed line-clamp-2">
+                    {project.description || "Sin descripción proporcionada."}
+                  </p>
+                  
+                  <div className="space-y-4">
+                    {project.client && (
+                      <div className="flex items-center gap-2 text-outline">
+                        <Building2 className="w-[16px] h-[16px]" />
+                        <span className="text-xs font-medium">Cliente: {project.client}</span>
+                      </div>
+                    )}
+                    
+                    <div className="flex items-center gap-2 text-outline">
+                      <Calendar className="w-[16px] h-[16px]" />
+                      <span className="text-xs font-medium">
+                        {isCompleted ? "Finalizado" : "Entrega"}: {project.target_date ? new Date(project.target_date).toLocaleDateString("es-ES", { day: "numeric", month: "short", year: "numeric" }) : "Sin fecha"}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center justify-between">
+                      <div className="flex -space-x-2">
+                        {project.members && project.members.length > 0 ? (
+                          project.members.slice(0, 3).map((member, i) => (
+                            <div 
+                              key={member.user_id} 
+                              className="w-8 h-8 rounded-full border-2 border-surface-container-lowest overflow-hidden bg-stone-bg cursor-pointer relative group"
+                              title={member.full_name}
+                            >
+                              {member.avatar_url ? (
+                                <img src={member.avatar_url} alt="" className="w-full h-full object-cover" />
+                              ) : (
+                                <div className={`w-full h-full flex items-center justify-center text-[10px] font-bold text-petroleum-blue ${i % 2 === 0 ? 'bg-secondary-container' : 'bg-primary-container'}`}>
+                                  {(member.full_name || '?').charAt(0).toUpperCase()}
+                                </div>
+                              )}
+                            </div>
+                          ))
+                        ) : (
+                          <div className="w-8 h-8 rounded-full border-2 border-surface-container-lowest bg-stone-bg flex items-center justify-center text-outline">
+                            <User className="w-4 h-4" />
+                          </div>
+                        )}
+                        {project.members && project.members.length > 3 && (
+                          <div className="w-8 h-8 rounded-full border-2 border-surface-container-lowest bg-stone-bg flex items-center justify-center text-[10px] font-bold text-petroleum-blue z-10">
+                            +{project.members.length - 3}
+                          </div>
+                        )}
+                      </div>
+                      <span className={`text-sm font-semibold ${isCompleted ? 'text-sage-accent' : isDelayed ? 'text-soft-terracotta' : 'text-petroleum-blue'}`}>
+                        {project.progress}%
+                      </span>
+                    </div>
+
+                    <div className="w-full bg-stone-bg h-1.5 rounded-full overflow-hidden">
+                      <div className={`h-full ${barColor} transition-all duration-500`} style={{ width: `${project.progress}%` }}></div>
+                    </div>
                   </div>
                 </div>
-                <span className="text-sm text-petroleum-blue font-semibold">65%</span>
               </div>
-              <div className="w-full bg-stone-bg h-1.5 rounded-full overflow-hidden">
-                <div className="bg-petroleum-blue h-full w-[65%]"></div>
-              </div>
-            </div>
-          </div>
+            );
+          })}
         </div>
-
-        {/* Project Card 3: Delayed */}
-        <div className="bg-surface-container-lowest rounded-xl shadow-[0_2px_8px_rgba(0,0,0,0.04)] overflow-hidden flex flex-col hover:bg-stone-bg/50 transition-colors duration-300 group">
-          <div className="h-1 bg-soft-terracotta w-full"></div>
-          <div className="p-6 flex flex-col h-full hover:-translate-y-1 transition-transform duration-300">
-            <div className="flex justify-between items-start mb-4">
-              <span className="px-3 py-1 rounded-full bg-error-container text-on-error-container text-[11px] font-semibold tracking-wide uppercase">Retrasado</span>
-              <button className="text-outline-variant hover:text-primary">
-                <MoreVertical className="w-5 h-5" />
-              </button>
-            </div>
-            <h3 className="text-[20px] font-semibold text-petroleum-blue mb-2 group-hover:text-primary transition-colors tracking-tight">Campaña Q4 Exterior</h3>
-            <p className="text-sm text-on-surface-variant mb-8 flex-grow leading-relaxed">Producción de materiales gráficos para mupis y pantallas digitales urbanas.</p>
-            
-            <div className="space-y-5">
-              <div className="flex items-center gap-2 text-error">
-                <Calendar className="w-[18px] h-[18px]" />
-                <span className="text-xs font-medium">Venció: 01 Nov, 2023</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <div className="flex -space-x-2">
-                   <div className="w-8 h-8 rounded-full border-2 border-surface-container-lowest overflow-hidden bg-stone-bg cursor-pointer">
-                      <img src="https://lh3.googleusercontent.com/aida-public/AB6AXuBPdXRh_6Vh75ZrLQk5nx1L9HJv-Ri1YipG87r9N3zcPSA_XipiDwkbRDA0E6DJgDnay73ouIHhVHMxP2hpNvQhrquvEj-l7213_TgERe3pehYlIq5jNSlVjExHY-eS4IDUenZ-fq3zCtlN_k2D81GEoD2u-iEyDIJTk9mmNFWkHmZ6g_qvoRrLQlZ5vfzPHS2d7nfH9hTZlkH2w_c9YzQ9Vnm3rg8qtceCQXq4ROpiONUBeMgN5tUHR4omJssbVqlkAaByjqCyjg" className="w-full h-full object-cover" />
-                  </div>
-                </div>
-                <span className="text-sm text-soft-terracotta font-semibold">30%</span>
-              </div>
-              <div className="w-full bg-stone-bg h-1.5 rounded-full overflow-hidden">
-                <div className="bg-soft-terracotta h-full w-[30%]"></div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-      </div>
+      )}
 
       {/* Floating Action Button */}
-      <button className="fixed bottom-24 right-6 md:bottom-8 md:right-8 w-14 h-14 bg-petroleum-blue text-white rounded-2xl shadow-lg flex items-center justify-center hover:bg-primary hover:-translate-y-1 transition-all duration-200 z-40 group cursor-pointer">
+      <button 
+        onClick={() => setShowCreateModal(true)}
+        className="fixed bottom-24 right-6 md:bottom-8 md:right-8 w-14 h-14 bg-petroleum-blue text-white rounded-2xl shadow-lg flex items-center justify-center hover:bg-primary hover:-translate-y-1 transition-all duration-200 z-40 group cursor-pointer"
+      >
         <Plus className="w-8 h-8 group-hover:scale-110 transition-transform" />
       </button>
 
+      {/* Premium Design Create Project Modal */}
+      {showCreateModal && (
+        <div className="fixed inset-0 bg-primary/20 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-in fade-in duration-200">
+          <div className="bg-surface-container-lowest rounded-2xl shadow-2xl border border-stone-bg max-w-md w-full overflow-hidden animate-in zoom-in-95 duration-200">
+            <div className="px-6 py-4 bg-stone-bg/50 border-b border-stone-bg flex justify-between items-center">
+              <h3 className="text-lg font-bold text-petroleum-blue">Nuevo Proyecto</h3>
+              <button 
+                onClick={() => setShowCreateModal(false)}
+                className="text-outline hover:text-primary p-1 rounded-full hover:bg-stone-bg transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            
+            <form onSubmit={handleCreateProject} className="p-6 space-y-4">
+              <div>
+                <label className="block text-xs font-semibold text-on-surface-variant mb-1.5 uppercase tracking-wide">
+                  Nombre del Proyecto <span className="text-soft-terracotta">*</span>
+                </label>
+                <input 
+                  type="text" 
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="ej. Portal E-commerce Sage" 
+                  className="w-full px-4 py-2.5 bg-warm-white border border-stone-bg rounded-xl focus:ring-2 focus:ring-sage-accent/10 focus:border-sage-accent outline-none transition-all text-sm text-on-surface"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-on-surface-variant mb-1.5 uppercase tracking-wide">
+                  Descripción
+                </label>
+                <textarea 
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  placeholder="Describe brevemente el alcance o meta de este proyecto..." 
+                  rows={3}
+                  className="w-full px-4 py-2.5 bg-warm-white border border-stone-bg rounded-xl focus:ring-2 focus:ring-sage-accent/10 focus:border-sage-accent outline-none transition-all text-sm text-on-surface resize-none"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-semibold text-on-surface-variant mb-1.5 uppercase tracking-wide">
+                    Cliente
+                  </label>
+                  <input 
+                    type="text" 
+                    value={client}
+                    onChange={(e) => setClient(e.target.value)}
+                    placeholder="ej. Arquetipo SL" 
+                    className="w-full px-4 py-2.5 bg-warm-white border border-stone-bg rounded-xl focus:ring-2 focus:ring-sage-accent/10 focus:border-sage-accent outline-none transition-all text-sm text-on-surface"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-on-surface-variant mb-1.5 uppercase tracking-wide">
+                    Fecha de entrega
+                  </label>
+                  <input 
+                    type="date" 
+                    value={targetDate}
+                    onChange={(e) => setTargetDate(e.target.value)}
+                    className="w-full px-4 py-2.5 bg-warm-white border border-stone-bg rounded-xl focus:ring-2 focus:ring-sage-accent/10 focus:border-sage-accent outline-none transition-all text-sm text-on-surface"
+                  />
+                </div>
+              </div>
+
+              <div className="pt-4 flex justify-end gap-3 border-t border-stone-bg">
+                <button 
+                  type="button" 
+                  onClick={() => setShowCreateModal(false)}
+                  className="px-4 py-2.5 bg-stone-bg text-on-surface-variant hover:bg-stone-bg/80 text-xs font-semibold rounded-xl transition-colors"
+                >
+                  Cancelar
+                </button>
+                <button 
+                  type="submit" 
+                  disabled={submitting || !name.trim()}
+                  className="px-4 py-2.5 bg-petroleum-blue text-white hover:bg-primary text-xs font-semibold rounded-xl transition-colors flex items-center gap-2 disabled:opacity-40"
+                >
+                  {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : "Crear Proyecto"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

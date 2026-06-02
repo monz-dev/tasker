@@ -8,18 +8,21 @@ import {
   Clock,
   MoreHorizontal,
   LayoutTemplate,
-  BarChart2,
-  Settings
+  Settings,
+  LogOut
 } from 'lucide-react';
 import { useState } from 'react';
 import type { ViewType } from '../App';
+import type { Profile } from '../types/models';
 
 interface NavigationProps {
   currentView: ViewType;
   onChange: (view: ViewType) => void;
+  onSignOut?: () => void;
+  profile: Profile | null;
 }
 
-export function Navigation({ currentView, onChange }: NavigationProps) {
+export function Navigation({ currentView, onChange, onSignOut, profile }: NavigationProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   return (
@@ -32,13 +35,19 @@ export function Navigation({ currentView, onChange }: NavigationProps) {
               <Menu className="w-5 h-5" />
             </button>
             <div className="w-10 h-10 rounded-full bg-stone-bg overflow-hidden flex-shrink-0 border border-outline-variant/30 hidden md:block">
-              <img 
-                src="https://lh3.googleusercontent.com/aida-public/AB6AXuAXRCexdeztCaSQkjv5pxqZ-lpqZXEN43Ci5UsmNUFz_Lw3MAR6A4x7HRCRl02_xvEKOXMEP_4sHp-s9igQrI3ObAnJkURgoxSttFEnbzLqWvvUl65cDbbghlPm2pjlmWEN8MUMJuFchwrfHDqqZRxknJABfzcDkW8pH8xed1W506Pwesn0Ue_BCIG5KxzNfoaywt-VqvWEtKTUd5mrkrh1pBJirlboY1RxYcK31ggxiwr7NDiQfv-Mnyf98tP4ypA3pLjlbN4nJQ" 
-                alt="Profile" 
-                className="w-full h-full object-cover"
-              />
+              {profile?.avatar_url ? (
+                <img 
+                  src={profile.avatar_url} 
+                  alt={profile.full_name || "Profile"} 
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <div className="w-full h-full bg-petroleum-blue text-white flex items-center justify-center font-bold text-sm">
+                  {profile?.full_name ? profile.full_name.substring(0, 2).toUpperCase() : "US"}
+                </div>
+              )}
             </div>
-            <h1 className="text-xl md:text-2xl font-semibold text-petroleum-blue tracking-tight">Stone & Sage</h1>
+            <h1 className="text-xl md:text-2xl font-semibold text-petroleum-blue tracking-tight">{profile?.full_name || "Stone & Sage"}</h1>
           </div>
           <div className="flex items-center gap-2">
             <button className="p-2 rounded-full hover:bg-surface-variant/50 transition-colors duration-200 text-petroleum-blue">
@@ -69,19 +78,30 @@ export function Navigation({ currentView, onChange }: NavigationProps) {
         <div className="fixed bottom-20 right-4 bg-surface-container-lowest border border-stone-bg p-4 rounded-2xl shadow-lg z-40 flex flex-col gap-4 min-w-[160px] animate-in slide-in-from-bottom-2 md:hidden">
            <SidebarItem icon={<Folder className="w-5 h-5 mr-3"/>} label="Proyectos" isActive={currentView === 'projects'} onClick={() => {onChange('projects'); setMobileMenuOpen(false)}} />
            <SidebarItem icon={<Clock className="w-5 h-5 mr-3"/>} label="Timeline" isActive={currentView === 'timeline'} onClick={() => {onChange('timeline'); setMobileMenuOpen(false)}} />
-           <SidebarItem icon={<BarChart2 className="w-5 h-5 mr-3"/>} label="Reportes" isActive={currentView === 'reports'} onClick={() => {onChange('reports'); setMobileMenuOpen(false)}} />
            <SidebarItem icon={<Settings className="w-5 h-5 mr-3"/>} label="Configuración" isActive={currentView === 'settings'} onClick={() => {onChange('settings'); setMobileMenuOpen(false)}} />
+           {onSignOut && (
+             <>
+               <div className="w-full h-px bg-outline-variant/30 my-1" />
+               <SidebarItem icon={<LogOut className="w-5 h-5 mr-3"/>} label="Sign out" isActive={false} onClick={() => { onSignOut(); setMobileMenuOpen(false); }} />
+             </>
+           )}
         </div>
       )}
 
       {/* Desktop Sidebar (Left side, fixed depth) */}
       <div className="hidden md:flex fixed left-0 top-0 h-full w-20 bg-stone-bg flex-col items-center py-8 gap-8 border-r border-outline-variant/20 z-50 overflow-y-auto no-scrollbar">
         <div className="w-10 h-10 rounded-full bg-surface-container-high overflow-hidden flex-shrink-0 border border-outline-variant">
+          {profile?.avatar_url ? (
             <img 
-              src="https://lh3.googleusercontent.com/aida-public/AB6AXuAlgFLYhwvqaWsN2eHwoL1viTINNRac03eFbjoHXtUkpgJWrhK27lDTlAIRElvWSyVrurWmzCd49Se5zaxbOvZPaGW0B2cis4obF9Gt-gkz2bQSC6oclCRhTlGZQbM5RJpPjLHJwiPP5XpP5vA0t9Wgnfr1dKxnyv77CrkW56ypi747KkpwoYpIA-b_dtmJc9JOx40NHjMhvXiRWWezsSS6frCZyA-x3VKIm5twlI1Zny3Oi6PUknpTNNMfRZ3JSd0TGbM87dDhbw" 
-              alt="Profile" 
+              src={profile.avatar_url} 
+              alt={profile.full_name || "Profile"} 
               className="w-full h-full object-cover"
             />
+          ) : (
+            <div className="w-full h-full bg-petroleum-blue text-white flex items-center justify-center font-bold text-sm">
+              {profile?.full_name ? profile.full_name.substring(0, 2).toUpperCase() : "US"}
+            </div>
+          )}
         </div>
         <div className="flex flex-col gap-3 mt-2 w-full px-3">
           <SidebarIcon icon={<LayoutDashboard />} title="Dashboard" isActive={currentView === 'dash'} onClick={() => onChange('dash')} />
@@ -91,10 +111,18 @@ export function Navigation({ currentView, onChange }: NavigationProps) {
           <SidebarIcon icon={<Clock />} title="Timeline" isActive={currentView === 'timeline'} onClick={() => onChange('timeline')} />
           <div className="w-8 h-px bg-outline-variant/30 mx-auto my-1"></div>
           <SidebarIcon icon={<LayoutTemplate />} title="Agile Sprints" isActive={currentView === 'agile'} onClick={() => onChange('agile')} />
-          <SidebarIcon icon={<BarChart2 />} title="Reportes" isActive={currentView === 'reports'} onClick={() => onChange('reports')} />
         </div>
-        <div className="mt-auto w-full px-3">
+        <div className="mt-auto w-full px-3 space-y-2">
            <SidebarIcon icon={<Settings />} title="Configuración" isActive={currentView === 'settings'} onClick={() => onChange('settings')} />
+           {onSignOut && (
+             <button
+               onClick={onSignOut}
+               className="p-3 w-full flex items-center justify-center text-on-surface-variant hover:bg-error-container/50 hover:text-error rounded-xl transition-all"
+               title="Sign out"
+             >
+               <LogOut className="w-5 h-5" />
+             </button>
+           )}
         </div>
       </div>
     </>

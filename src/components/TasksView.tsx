@@ -1,25 +1,129 @@
-import { Calendar, ChevronRight, Inbox, Plus, Star,  ArrowUpRight } from "lucide-react";
+import { useState, useEffect, useCallback } from "react";
+import { Calendar, ChevronRight, Inbox, Plus, Star, ArrowUpRight, Loader2, AlertCircle, CheckCircle2 } from "lucide-react";
+import { getPendingTasks, addQuickTask, toggleTaskDone } from "../services/taskService";
+import { getActiveProjects } from "../services/projectService";
+import type { PendingTask, ProjectWithMembers } from "../types/models";
+
+const PRIORITY_BORDER_COLORS = {
+  urgent: "border-soft-terracotta",
+  high: "border-dim-amber",
+  medium: "border-petroleum-blue",
+  low: "border-sage-accent",
+};
+
+const withTimeout = <T extends unknown>(promise: Promise<T>, ms = 6000): Promise<T> => {
+  return Promise.race([
+    promise,
+    new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error("La base de datos tardó demasiado en responder (Tiempo de espera agotado).")), ms)
+    )
+  ]);
+};
 
 export function TasksView() {
+  const [projects, setProjects] = useState<ProjectWithMembers[]>([]);
+  const [pendingTasks, setPendingTasks] = useState<PendingTask[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [addingTask, setAddingTask] = useState(false);
+  const [newTaskTitle, setNewTaskTitle] = useState("");
+  const [error, setError] = useState<string | null>(null);
+
+  const loadData = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const [proj, tasks] = await withTimeout(Promise.all([
+        getActiveProjects(),
+        getPendingTasks(),
+      ]), 6000);
+      setProjects(proj);
+      setPendingTasks(tasks);
+    } catch (err: any) {
+      console.error("Error loading tasks view:", err);
+      setError("No se pudieron cargar las tareas. Intente de nuevo o recargue la página.");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
+
+  const handleAddTask = async () => {
+    if (!newTaskTitle.trim() || projects.length === 0) return;
+    setAddingTask(true);
+    setError(null);
+    try {
+      await withTimeout(addQuickTask({
+        title: newTaskTitle.trim(),
+        project_id: projects[0].id,
+      }), 6000);
+      setNewTaskTitle("");
+      const tasks = await withTimeout(getPendingTasks(), 5000);
+      setPendingTasks(tasks);
+    } catch (err: any) {
+      console.error("Error adding quick task:", err);
+      setError(err.message || "Error al añadir la tarea rápida. Verifique sus permisos.");
+    } finally {
+      setAddingTask(false);
+    }
+  };
+
+  const handleToggleTask = async (taskId: string, currentStatus: string) => {
+    try {
+      await toggleTaskDone(taskId, currentStatus);
+      const tasks = await getPendingTasks();
+      setPendingTasks(tasks);
+    } catch (err) {
+      console.error("Error toggling task:", err);
+    }
+  };
+
+  const completedPercentage = pendingTasks.length > 0 ? 0 : 100; // Simplified for pending list view
+
   return (
     <div className="max-w-[1200px] mx-auto px-4 md:px-8 py-8 mb-24 md:mb-12 space-y-10">
       
       {/* Quick Task Entry */}
       <section className="w-full">
-        <div className="bg-surface-container-lowest rounded-xl shadow-sm p-4 border border-stone-bg focus-within:ring-2 focus-within:ring-sage-accent/20 transition-all">
-          <div className="flex items-center gap-3">
-            <Plus className="w-6 h-6 text-sage-accent" />
-            <input 
-              type="text" 
-              id="quick-task-input" 
-              placeholder="Añadir una tarea rápida..." 
-              className="bg-transparent border-none focus:ring-0 w-full text-base placeholder:text-outline-variant/70 outline-none"
-            />
-            <button className="bg-petroleum-blue text-white px-5 py-2 rounded-lg text-xs font-semibold hover:shadow-md transition-shadow active:scale-95 cursor-pointer flex-shrink-0 tracking-wide">
-              Guardar
-            </button>
+        {projects.length > 0 ? (
+          <div className="bg-surface-container-lowest rounded-xl shadow-sm p-4 border border-stone-bg focus-within:ring-2 focus-within:ring-sage-accent/20 transition-all">
+            <div className="flex items-center gap-3">
+              {addingTask ? (
+                <Loader2 className="w-6 h-6 text-sage-accent animate-spin" />
+              ) : (
+                <Plus className="w-6 h-6 text-sage-accent" />
+              )}
+              <input 
+                type="text" 
+                id="quick-task-input" 
+                value={newTaskTitle}
+                onChange={(e) => setNewTaskTitle(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleAddTask()}
+                placeholder="Añadir una tarea rápida..." 
+                className="bg-transparent border-none focus:ring-0 w-full text-base placeholder:text-outline-variant/70 outline-none"
+                disabled={addingTask}
+              />
+              <button 
+                onClick={handleAddTask}
+                disabled={addingTask || !newTaskTitle.trim()}
+                className="bg-petroleum-blue text-white px-5 py-2 rounded-lg text-xs font-semibold hover:shadow-md transition-all active:scale-95 cursor-pointer flex-shrink-0 tracking-wide disabled:opacity-40"
+              >
+                Guardar
+              </button>
+            </div>
           </div>
-        </div>
+        ) : (
+          <div className="bg-surface-container-lowest rounded-xl p-4 border border-dashed border-outline-variant text-center">
+            <p className="text-sm text-outline">Creá un proyecto primero desde la pestaña de Proyectos para poder añadir tareas.</p>
+          </div>
+        )}
+        {error && (
+          <p className="text-xs text-soft-terracotta mt-2 ml-1 flex items-center gap-1">
+            <AlertCircle className="w-3.5 h-3.5" /> {error}
+          </p>
+        )}
       </section>
 
       {/* Bento Layout for Groups */}
@@ -30,44 +134,58 @@ export function TasksView() {
           <div className="flex items-center justify-between">
             <h2 className="text-2xl font-bold text-petroleum-blue flex items-center gap-3 tracking-tight">
               <Calendar className="w-6 h-6 text-primary" />
-              Hoy
+              Tareas Pendientes
             </h2>
-            <span className="text-[11px] font-semibold bg-secondary-container text-on-secondary-container px-4 py-1.5 rounded-full tracking-wide">4 PENDIENTES</span>
+            <span className="text-[11px] font-semibold bg-secondary-container text-on-secondary-container px-4 py-1.5 rounded-full tracking-wide">
+              {pendingTasks.length} PENDIENTES
+            </span>
           </div>
           
           <div className="space-y-3">
-            {/* Task List Item 1 */}
-            <label className="group flex items-center justify-between bg-surface-container-lowest p-5 rounded-xl shadow-[0_2px_8px_rgba(0,0,0,0.02)] transition-all hover:translate-x-1 border-l-4 border-sage-accent cursor-pointer ring-1 ring-stone-bg/50">
-              <div className="flex items-center gap-5">
-                <input type="checkbox" className="w-5 h-5 rounded-full border-2 border-sage-accent text-sage-accent focus:ring-sage-accent transition-colors appearance-none checked:bg-sage-accent checked:border-sage-accent" />
-                <span className="text-base text-on-surface select-none font-medium group-has-[:checked]:line-through group-has-[:checked]:opacity-50">Revisar propuesta del cliente de Londres</span>
+            {loading ? (
+              <div className="flex justify-center py-12">
+                <Loader2 className="w-8 h-8 text-petroleum-blue animate-spin" />
               </div>
-              <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                 <Star className="w-5 h-5 text-outline-variant hover:text-soft-terracotta transition-colors" />
+            ) : pendingTasks.length === 0 ? (
+              <div className="bg-surface-container-lowest p-8 rounded-xl border border-dashed border-outline-variant text-center flex flex-col items-center justify-center">
+                <CheckCircle2 className="w-8 h-8 text-sage-accent mb-2" />
+                <p className="text-sm text-on-surface-variant font-medium">¡Todo al día!</p>
+                <p className="text-xs text-outline mt-1">No tenés tareas pendientes asignadas.</p>
               </div>
-            </label>
-
-            {/* Task List Item 2 */}
-            <label className="group flex items-center justify-between bg-surface-container-lowest p-5 rounded-xl shadow-[0_2px_8px_rgba(0,0,0,0.02)] transition-all hover:translate-x-1 border-l-4 border-petroleum-blue cursor-pointer ring-1 ring-stone-bg/50">
-              <div className="flex items-center gap-5">
-                <input type="checkbox" className="w-5 h-5 rounded-full border-2 border-petroleum-blue text-petroleum-blue focus:ring-petroleum-blue transition-colors appearance-none checked:bg-petroleum-blue checked:border-petroleum-blue" />
-                <span className="text-base text-on-surface select-none font-medium group-has-[:checked]:line-through group-has-[:checked]:opacity-50">Llamada de seguimiento: Proyecto Sage</span>
-              </div>
-              <div className="flex items-center gap-2">
-                 <Star className="w-5 h-5 text-dim-amber fill-dim-amber" />
-              </div>
-            </label>
-
-            {/* Task List Item 3 */}
-             <label className="group flex items-center justify-between bg-surface-container-lowest p-5 rounded-xl shadow-[0_2px_8px_rgba(0,0,0,0.02)] transition-all hover:translate-x-1 border-l-4 border-soft-terracotta cursor-pointer ring-1 ring-stone-bg/50">
-              <div className="flex items-center gap-5">
-                <input type="checkbox" className="w-5 h-5 rounded-full border-2 border-soft-terracotta text-soft-terracotta focus:ring-soft-terracotta transition-colors appearance-none checked:bg-soft-terracotta checked:border-soft-terracotta" />
-                <span className="text-base text-on-surface select-none font-medium group-has-[:checked]:line-through group-has-[:checked]:opacity-50">Finalizar reporte trimestral</span>
-              </div>
-              <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                 <Star className="w-5 h-5 text-outline-variant hover:text-soft-terracotta transition-colors" />
-              </div>
-            </label>
+            ) : (
+              pendingTasks.map((task) => (
+                <label 
+                  key={task.id}
+                  className={`group flex items-center justify-between bg-surface-container-lowest p-5 rounded-xl shadow-[0_2px_8px_rgba(0,0,0,0.02)] transition-all hover:translate-x-1 border-l-4 ${PRIORITY_BORDER_COLORS[task.priority] || "border-outline"} cursor-pointer ring-1 ring-stone-bg/50`}
+                >
+                  <div className="flex items-center gap-5 flex-1 min-w-0">
+                    <input 
+                      type="checkbox" 
+                      checked={task.status === "done"}
+                      onChange={() => handleToggleTask(task.id, task.status)}
+                      className="w-5 h-5 rounded-full border-2 border-outline-variant text-sage-accent focus:ring-sage-accent transition-colors appearance-none checked:bg-sage-accent checked:border-sage-accent cursor-pointer flex-shrink-0" 
+                    />
+                    <div className="truncate pr-4">
+                      <span className="text-base text-on-surface select-none font-medium truncate block">
+                        {task.title}
+                      </span>
+                      {task.project_name && (
+                        <span className="text-xs text-outline block mt-0.5 font-semibold uppercase tracking-wider">
+                          {task.project_name}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {task.priority === "urgent" && (
+                      <span className="text-[9px] font-bold bg-error-container text-on-error-container px-2 py-0.5 rounded uppercase tracking-wider">
+                        Crítica
+                      </span>
+                    )}
+                  </div>
+                </label>
+              ))
+            )}
           </div>
         </section>
 
@@ -78,22 +196,21 @@ export function TasksView() {
           <section className="space-y-4">
             <h2 className="text-lg font-semibold text-petroleum-blue flex items-center gap-2">
               <Star className="w-5 h-5" />
-              Favoritos
+              Proyectos
             </h2>
             <div className="bg-stone-bg/70 rounded-2xl p-4 space-y-1">
-              
-              <div className="flex items-center gap-3 p-3 hover:bg-white rounded-xl transition-colors cursor-pointer group">
-                <div className="w-2.5 h-2.5 rounded-full bg-soft-terracotta flex-shrink-0"></div>
-                <span className="text-sm text-on-surface-variant font-medium flex-1 group-hover:text-petroleum-blue transition-colors">Estrategia 2024</span>
-                <ChevronRight className="w-4 h-4 text-outline-variant opacity-0 group-hover:opacity-100 transition-all -translate-x-2 group-hover:translate-x-0" />
-              </div>
-
-              <div className="flex items-center gap-3 p-3 hover:bg-white rounded-xl transition-colors cursor-pointer group">
-                <div className="w-2.5 h-2.5 rounded-full bg-sage-accent flex-shrink-0"></div>
-                <span className="text-sm text-on-surface-variant font-medium flex-1 group-hover:text-petroleum-blue transition-colors">Diseño UI/UX</span>
-                <ChevronRight className="w-4 h-4 text-outline-variant opacity-0 group-hover:opacity-100 transition-all -translate-x-2 group-hover:translate-x-0" />
-              </div>
-
+              {projects.slice(0, 4).map((p) => (
+                <div key={p.id} className="flex items-center gap-3 p-3 hover:bg-white rounded-xl transition-colors cursor-pointer group">
+                  <div className="w-2.5 h-2.5 rounded-full bg-petroleum-blue flex-shrink-0"></div>
+                  <span className="text-sm text-on-surface-variant font-medium flex-1 group-hover:text-petroleum-blue transition-colors truncate">
+                    {p.name}
+                  </span>
+                  <ChevronRight className="w-4 h-4 text-outline-variant opacity-0 group-hover:opacity-100 transition-all -translate-x-2 group-hover:translate-x-0" />
+                </div>
+              ))}
+              {projects.length === 0 && (
+                <p className="text-xs text-outline p-3 text-center">No hay proyectos activos.</p>
+              )}
             </div>
           </section>
 
@@ -106,7 +223,6 @@ export function TasksView() {
             <div className="bg-surface-container-low rounded-2xl p-8 border border-dashed border-outline-variant/60 flex flex-col items-center justify-center text-center space-y-3">
               <Inbox className="w-8 h-8 text-outline-variant/60" strokeWidth={1.5} />
               <p className="text-[11px] uppercase tracking-widest font-semibold text-outline">Tu bandeja está limpia</p>
-              <button className="text-[12px] font-semibold text-sage-accent hover:underline decoration-sage-accent/30 underline-offset-4">Ver archivados</button>
             </div>
           </section>
 
@@ -114,9 +230,14 @@ export function TasksView() {
           <div className="bg-petroleum-blue text-white rounded-2xl p-8 relative overflow-hidden shadow-md">
             <div className="relative z-10">
               <p className="text-[11px] font-semibold text-primary-fixed opacity-80 uppercase tracking-[0.2em] mb-1">Productividad</p>
-              <h3 className="text-3xl font-semibold mt-1 tracking-tight">85% completado</h3>
+              <h3 className="text-3xl font-semibold mt-1 tracking-tight">
+                {pendingTasks.length === 0 ? "100%" : "Al día"}
+              </h3>
               <div className="w-full bg-white/20 h-2 rounded-full mt-6">
-                <div className="bg-primary-fixed w-[85%] h-full rounded-full shadow-[0_0_10px_rgba(200,232,242,0.4)]"></div>
+                <div 
+                  className="bg-primary-fixed h-full rounded-full shadow-[0_0_10px_rgba(200,232,242,0.4)] transition-all duration-500" 
+                  style={{ width: `${completedPercentage}%` }}
+                ></div>
               </div>
             </div>
             <div className="absolute -right-6 -bottom-6 opacity-[0.07] z-0">
