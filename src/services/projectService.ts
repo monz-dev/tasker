@@ -1,5 +1,5 @@
-import { supabase } from '../lib/supabaseClient';
-import type { ProjectWithMembers } from '../types/models';
+import { supabase } from '@/lib/supabase/client';
+import type { ProjectWithMembers } from '@/types/models';
 import { logActivity } from './activityService';
 
 export async function getActiveProjects(): Promise<ProjectWithMembers[]> {
@@ -19,7 +19,9 @@ export async function createProject(project: {
   client?: string;
   target_date?: string;
 }) {
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
   if (!user) throw new Error('Not authenticated');
 
   const { data, error } = await supabase
@@ -63,7 +65,10 @@ export async function updateProjectProgress(projectId: string, progress: number)
   if (error) throw error;
 }
 
-export async function updateProjectStatus(projectId: string, status: 'active' | 'completed' | 'delayed' | 'archived') {
+export async function updateProjectStatus(
+  projectId: string,
+  status: 'active' | 'completed' | 'delayed' | 'archived'
+) {
   const { error } = await supabase
     .from('projects')
     .update({

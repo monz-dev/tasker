@@ -1,7 +1,9 @@
+'use client';
+
 import { useState, useEffect, useCallback } from "react";
 import { Calendar, MoreVertical, Plus, Search, Loader2, X, AlertCircle, Trash2, CheckCircle2, TrendingUp, User, Building2 } from "lucide-react";
-import { getActiveProjects, createProject, updateProjectProgress, updateProjectStatus, softDeleteProject } from "../services/projectService";
-import type { ProjectWithMembers } from "../types/models";
+import { getActiveProjects, createProject, updateProjectProgress, updateProjectStatus, softDeleteProject } from "@/services/projectService";
+import type { ProjectWithMembers } from "@/types/models";
 
 export function ProjectsView() {
   const [projects, setProjects] = useState<ProjectWithMembers[]>([]);

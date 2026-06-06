@@ -1,41 +1,12 @@
+'use client';
+
 import { useState } from 'react';
-import type { Profile } from '../types/models';
-import type { User } from '@supabase/supabase-js';
-import { useAuth } from '../hooks/useAuth';
+import { supabase } from '@/lib/supabase/client';
 import { Loader2 } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 
-interface AuthGuardProps {
-  children: (ctx: { user: User; profile: Profile | null; signOut: () => Promise<void> }) => React.ReactNode;
-}
-
-export function AuthGuard({ children }: AuthGuardProps) {
-  const { user, profile, loading, signIn, signUp, signOut } = useAuth();
-
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-warm-white flex items-center justify-center">
-        <div className="flex flex-col items-center gap-4">
-          <Loader2 className="w-8 h-8 text-petroleum-blue animate-spin" />
-          <p className="text-sm text-on-surface-variant">Loading...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (!user) {
-    return <LoginScreen onSignIn={signIn} onSignUp={signUp} />;
-  }
-
-  return <>{children({ user, profile, signOut })}</>;
-}
-
-function LoginScreen({
-  onSignIn,
-  onSignUp,
-}: {
-  onSignIn: (email: string, password: string) => Promise<{ error: unknown }>;
-  onSignUp: (email: string, password: string, fullName: string) => Promise<{ error: unknown }>;
-}) {
+export default function LoginPage() {
+  const router = useRouter();
   const [mode, setMode] = useState<'login' | 'register'>('login');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -51,17 +22,28 @@ function LoginScreen({
 
     try {
       if (mode === 'login') {
-        const { error } = await onSignIn(email, password);
-        if (error) setError((error as Error).message);
+        const { error } = await supabase.auth.signInWithPassword({ email, password });
+        if (error) {
+          setError(error.message);
+        } else {
+          router.push('/dashboard');
+          router.refresh();
+        }
       } else {
         if (!fullName.trim()) {
           setError('Please enter your name');
           setSubmitting(false);
           return;
         }
-        const { error } = await onSignUp(email, password, fullName);
+        const { error } = await supabase.auth.signUp({
+          email,
+          password,
+          options: {
+            data: { full_name: fullName },
+          },
+        });
         if (error) {
-          setError((error as Error).message);
+          setError(error.message);
         } else {
           setRegistered(true);
         }
@@ -102,7 +84,7 @@ function LoginScreen({
       <div className="w-full max-w-sm">
         {/* Brand */}
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-semibold text-petroleum-blue tracking-tight mb-1">Stone & Sage</h1>
+          <h1 className="text-3xl font-semibold text-petroleum-blue tracking-tight mb-1">Stone &amp; Sage</h1>
           <p className="text-sm text-on-surface-variant">Project Management</p>
         </div>
 

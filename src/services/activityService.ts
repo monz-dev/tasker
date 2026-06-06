@@ -1,5 +1,5 @@
-import { supabase } from '../lib/supabaseClient';
-import type { ActivityLog } from '../types/models';
+import { supabase } from '@/lib/supabase/client';
+import type { ActivityLog } from '@/types/models';
 
 export async function getRecentActivity(limit = 15): Promise<ActivityLog[]> {
   const { data, error } = await supabase.rpc('get_recent_activity', { p_limit: limit });
@@ -20,15 +20,15 @@ export async function logActivity(entry: {
   target_name: string;
   metadata?: Record<string, unknown>;
 }) {
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
   if (!user) throw new Error('Not authenticated');
 
-  const { error } = await supabase
-    .from('activity_log')
-    .insert({
-      ...entry,
-      user_id: user.id,
-    });
+  const { error } = await supabase.from('activity_log').insert({
+    ...entry,
+    user_id: user.id,
+  });
 
   if (error) throw error;
 }

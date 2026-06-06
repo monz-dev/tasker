@@ -1,5 +1,5 @@
-import { supabase } from '../lib/supabaseClient';
-import type { WeeklyStats } from '../types/models';
+import { supabase } from '@/lib/supabase/client';
+import type { WeeklyStats } from '@/types/models';
 
 const EMPTY_STATS: WeeklyStats = {
   total_completed: 0,

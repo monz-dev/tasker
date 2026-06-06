@@ -1,8 +1,10 @@
+'use client';
+
 import { useState, useEffect, useCallback } from "react";
 import { Calendar, ChevronRight, Inbox, Plus, Star, ArrowUpRight, Loader2, AlertCircle, CheckCircle2 } from "lucide-react";
-import { getPendingTasks, addQuickTask, toggleTaskDone } from "../services/taskService";
-import { getActiveProjects } from "../services/projectService";
-import type { PendingTask, ProjectWithMembers } from "../types/models";
+import { getPendingTasks, addQuickTask, toggleTaskDone } from "@/services/taskService";
+import { getActiveProjects } from "@/services/projectService";
+import type { PendingTask, ProjectWithMembers } from "@/types/models";
 
 const PRIORITY_BORDER_COLORS = {
   urgent: "border-soft-terracotta",

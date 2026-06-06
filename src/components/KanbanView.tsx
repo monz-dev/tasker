@@ -1,8 +1,10 @@
+'use client';
+
 import { useState, useEffect, useCallback } from "react";
 import { CheckCircle2, Clock, MessageSquare, MoreVertical, PlusCircle, AlertCircle, X, Loader2, ArrowRight, ArrowLeft, Plus, Calendar, Trash2 } from "lucide-react";
-import { getActiveProjects } from "../services/projectService";
-import { getTasksByProject, createTask, updateTaskStatus, softDeleteTask } from "../services/taskService";
-import type { ProjectWithMembers, Task } from "../types/models";
+import { getActiveProjects } from "@/services/projectService";
+import { getTasksByProject, createTask, updateTaskStatus, softDeleteTask } from "@/services/taskService";
+import type { ProjectWithMembers, Task } from "@/types/models";
 
 const COLUMNS = [
   { id: "todo" as const, label: "Por Hacer", color: "bg-soft-terracotta" },

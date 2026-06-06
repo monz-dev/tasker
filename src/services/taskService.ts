@@ -1,5 +1,5 @@
-import { supabase } from '../lib/supabaseClient';
-import type { Task, PendingTask } from '../types/models';
+import { supabase } from '@/lib/supabase/client';
+import type { Task, PendingTask } from '@/types/models';
 
 export async function getPendingTasks(limit = 10): Promise<PendingTask[]> {
   const { data, error } = await supabase.rpc('get_pending_tasks', { p_limit: limit });
@@ -38,7 +38,9 @@ export async function createTask(task: {
   due_date?: string;
   story_points?: number;
 }) {
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
   if (!user) throw new Error('Not authenticated');
 
   const { data, error } = await supabase
@@ -76,11 +78,11 @@ export async function addQuickTask(task: {
   });
 }
 
-export async function updateTaskStatus(taskId: string, status: 'todo' | 'in_progress' | 'review' | 'done') {
-  const { error } = await supabase
-    .from('tasks')
-    .update({ status })
-    .eq('id', taskId);
+export async function updateTaskStatus(
+  taskId: string,
+  status: 'todo' | 'in_progress' | 'review' | 'done'
+) {
+  const { error } = await supabase.from('tasks').update({ status }).eq('id', taskId);
 
   if (error) throw error;
 }
@@ -106,10 +108,7 @@ export async function softDeleteTask(taskId: string) {
 export async function toggleTaskDone(taskId: string, currentStatus: string) {
   const newStatus = currentStatus === 'done' ? 'todo' : 'done';
 
-  const { error } = await supabase
-    .from('tasks')
-    .update({ status: newStatus })
-    .eq('id', taskId);
+  const { error } = await supabase.from('tasks').update({ status: newStatus }).eq('id', taskId);
 
   if (error) throw error;
   return newStatus;

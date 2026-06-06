@@ -1,16 +1,13 @@
+'use client';
+
 import { useState, useEffect, useCallback } from 'react';
 import { MessageCircle, CheckCircle2, Upload, Target, Plus, Loader2, FolderPlus, AlertCircle, Activity } from 'lucide-react';
-import { getActiveProjects } from '../services/projectService';
-import { getPendingTasks, addQuickTask, toggleTaskDone } from '../services/taskService';
-import { getRecentActivity } from '../services/activityService';
-import { getWeeklyStats } from '../services/dashboardService';
-import type { ProjectWithMembers, PendingTask, ActivityLog, WeeklyStats } from '../types/models';
-import type { Profile } from '../types/models';
-
-interface DashboardViewProps {
-  userName?: string;
-  profile?: Profile | null;
-}
+import { getActiveProjects } from '@/services/projectService';
+import { getPendingTasks, addQuickTask, toggleTaskDone } from '@/services/taskService';
+import { getRecentActivity } from '@/services/activityService';
+import { getWeeklyStats } from '@/services/dashboardService';
+import type { ProjectWithMembers, PendingTask, ActivityLog, WeeklyStats } from '@/types/models';
+import { useAuth } from '@/hooks/useAuth';
 
 const ACTION_ICONS: Record<string, React.ReactNode> = {
   commented: <MessageCircle className="w-4 h-4" />,
@@ -119,7 +116,8 @@ function ActivitySkeleton() {
   );
 }
 
-export function DashboardView({ userName, profile }: DashboardViewProps) {
+export function DashboardView() {
+  const { user, profile } = useAuth();
   const [projects, setProjects] = useState<ProjectWithMembers[]>([]);
   const [pendingTasks, setPendingTasks] = useState<PendingTask[]>([]);
   const [activity, setActivity] = useState<ActivityLog[]>([]);
@@ -128,7 +126,7 @@ export function DashboardView({ userName, profile }: DashboardViewProps) {
   const [addingTask, setAddingTask] = useState(false);
   const [newTaskTitle, setNewTaskTitle] = useState('');
 
-  const displayName = profile?.full_name || userName || 'Team';
+  const displayName = profile?.full_name || user?.user_metadata?.full_name || 'Team';
 
   const loadDashboard = useCallback(async () => {
     setLoading(true);

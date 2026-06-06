@@ -1,5 +1,5 @@
-import { supabase } from '../lib/supabaseClient';
-import type { Sprint } from '../types/models';
+import { supabase } from '@/lib/supabase/client';
+import type { Sprint } from '@/types/models';
 
 export async function getSprintsByProject(projectId: string): Promise<Sprint[]> {
   const { data, error } = await supabase
@@ -24,7 +24,9 @@ export async function createSprint(sprint: {
   end_date: string;
   status?: 'planned' | 'active' | 'completed';
 }) {
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
   if (!user) throw new Error('Not authenticated');
 
   const { data, error } = await supabase
@@ -44,7 +46,10 @@ export async function createSprint(sprint: {
   return data;
 }
 
-export async function updateSprintStatus(sprintId: string, status: 'planned' | 'active' | 'completed') {
+export async function updateSprintStatus(
+  sprintId: string,
+  status: 'planned' | 'active' | 'completed'
+) {
   const { error } = await supabase
     .from('sprints')
     .update({ status })

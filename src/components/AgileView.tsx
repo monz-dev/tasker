@@ -1,10 +1,12 @@
+'use client';
+
 import { useEffect, useState } from "react";
 import { ChevronDown, Flag, MoreVertical, Plus, ArrowLeft, Loader2, AlertCircle } from "lucide-react";
-import { useAppStore } from "../store/useAppStore";
-import { getSprintsByProject, createSprint } from "../services/sprintService";
-import { getActiveProjects } from "../services/projectService";
-import { getTasksByProject, createTask, updateTaskSprint as dbUpdateTaskSprint } from "../services/taskService";
-import { Task, ProjectWithMembers } from "../types/models";
+import { useAppStore } from "@/store/useAppStore";
+import { getSprintsByProject, createSprint } from "@/services/sprintService";
+import { getActiveProjects } from "@/services/projectService";
+import { getTasksByProject, createTask, updateTaskSprint as dbUpdateTaskSprint } from "@/services/taskService";
+import { Task, ProjectWithMembers } from "@/types/models";
 
 export function AgileView() {
   const { sprints, tasks, setSprints, setTasks, addSprint, addTask, updateTaskSprint } = useAppStore();

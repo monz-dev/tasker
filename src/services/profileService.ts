@@ -1,11 +1,13 @@
-import { supabase } from '../lib/supabaseClient';
-import type { Profile } from '../types/models';
+import { supabase } from '@/lib/supabase/client';
+import type { Profile } from '@/types/models';
 
 export async function updateProfile(profile: {
   full_name: string;
   role: 'admin' | 'member' | 'viewer';
 }): Promise<Profile> {
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
   if (!user) throw new Error('Not authenticated');
 
   const { data, error } = await supabase

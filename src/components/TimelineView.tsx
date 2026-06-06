@@ -1,8 +1,10 @@
+'use client';
+
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { ChevronDown, Calendar, Loader2, AlertCircle, Clock } from "lucide-react";
-import { getActiveProjects } from "../services/projectService";
-import { getTasksByProject } from "../services/taskService";
-import type { ProjectWithMembers, Task } from "../types/models";
+import { getActiveProjects } from "@/services/projectService";
+import { getTasksByProject } from "@/services/taskService";
+import type { ProjectWithMembers, Task } from "@/types/models";
 
 const STATUS_COLORS = {
   todo: "bg-soft-terracotta/90",

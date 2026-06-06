@@ -1,19 +1,17 @@
+'use client';
+
 import { useState } from "react";
-import { Bell, Lock, Palette, User, Globe, Database, Loader2, AlertCircle, CheckCircle2, LogOut } from "lucide-react";
-import type { User as SupabaseUser } from "@supabase/supabase-js";
-import type { Profile } from "../types/models";
-import { updateProfile } from "../services/profileService";
+import { Bell, Lock, Palette, User, Globe, Loader2, AlertCircle, CheckCircle2, LogOut } from "lucide-react";
+import { updateProfile } from "@/services/profileService";
+import { useAuth } from "@/hooks/useAuth";
+import { useRouter } from "next/navigation";
 
-interface SettingsViewProps {
-  user: SupabaseUser;
-  profile: Profile | null;
-  onSignOut: () => void;
-}
-
-export function SettingsView({ user, profile, onSignOut }: SettingsViewProps) {
+export function SettingsView() {
+  const { user, profile, signOut } = useAuth();
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState<"account" | "appearance" | "notifications" | "security" | "languages">("account");
   const [fullName, setFullName] = useState(profile?.full_name || "");
-  const [role, setRole] = useState<Profile["role"]>(profile?.role || "member");
+  const [role, setRole] = useState<NonNullable<typeof profile>["role"]>(profile?.role || "member");
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -32,17 +30,22 @@ export function SettingsView({ user, profile, onSignOut }: SettingsViewProps) {
         role: role,
       });
       setSuccess(true);
-      
+
       // Auto-reload to apply changes system-wide in 1.5 seconds
       setTimeout(() => {
-        window.location.reload();
+        router.refresh();
       }, 1200);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Error saving profile:", err);
-      setError(err.message || "No se pudieron guardar los cambios. Intente nuevamente.");
+      setError((err as Error).message || "No se pudieron guardar los cambios. Intente nuevamente.");
     } finally {
       setSubmitting(false);
     }
+  };
+
+  const handleSignOut = async () => {
+    await signOut();
+    router.push('/login');
   };
 
   return (
@@ -77,7 +80,7 @@ export function SettingsView({ user, profile, onSignOut }: SettingsViewProps) {
             />
             <SettingsTab 
               icon={<Lock className="w-4 h-4" />} 
-              label="Seguridad & Privacidad" 
+              label="Seguridad &amp; Privacidad" 
               active={activeTab === "security"} 
               onClick={() => setActiveTab("security")}
             />
@@ -142,7 +145,7 @@ export function SettingsView({ user, profile, onSignOut }: SettingsViewProps) {
                       </label>
                       <select 
                         value={role}
-                        onChange={(e) => setRole(e.target.value as Profile["role"])}
+                        onChange={(e) => setRole(e.target.value as NonNullable<typeof profile>["role"])}
                         className="w-full bg-warm-white border border-stone-bg rounded-xl px-4 py-2.5 text-sm text-primary focus:outline-none focus:border-sage-accent focus:ring-1 focus:ring-sage-accent cursor-pointer transition-all"
                       >
                         <option value="member">Miembro del equipo</option>
@@ -164,7 +167,7 @@ export function SettingsView({ user, profile, onSignOut }: SettingsViewProps) {
                     </label>
                     <input 
                       type="email" 
-                      value={user.email || ""}
+                      value={user?.email || ""}
                       disabled
                       className="w-full bg-stone-bg/50 border border-outline-variant/20 rounded-xl px-4 py-2.5 text-sm text-outline cursor-not-allowed"
                     />
@@ -182,7 +185,7 @@ export function SettingsView({ user, profile, onSignOut }: SettingsViewProps) {
                   </p>
                   <button
                     type="button"
-                    onClick={onSignOut}
+                    onClick={handleSignOut}
                     className="px-4 py-2.5 bg-red-50 hover:bg-error-container/20 text-soft-terracotta text-xs font-semibold rounded-xl transition-all flex items-center gap-2 cursor-pointer border border-soft-terracotta/20 active:scale-95"
                   >
                     <LogOut className="w-4 h-4" /> Cerrar Sesión Activa

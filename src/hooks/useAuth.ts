@@ -1,7 +1,9 @@
+'use client';
+
 import { useEffect, useState, useCallback } from 'react';
-import { supabase } from '../lib/supabaseClient';
+import { supabase } from '@/lib/supabase/client';
 import type { User, Session } from '@supabase/supabase-js';
-import type { Profile } from '../types/models';
+import type { Profile } from '@/types/models';
 
 interface AuthState {
   user: User | null;
@@ -28,7 +30,9 @@ export function useAuth() {
 
       if (error && error.code === 'PGRST116') {
         // Self-healing: create profile on the fly if it is missing
-        const { data: { user } } = await supabase.auth.getUser();
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
         if (user) {
           const { data: newProfile, error: insertError } = await supabase
             .from('profiles')
@@ -46,7 +50,7 @@ export function useAuth() {
       }
       return data as Profile | null;
     } catch (err) {
-      console.error("Error in fetchProfile:", err);
+      console.error('Error in fetchProfile:', err);
       return null;
     }
   }, []);
@@ -63,7 +67,7 @@ export function useAuth() {
           profile = await fetchProfile(session.user.id);
         }
       } catch (err) {
-        console.error("Error fetching initial profile:", err);
+        console.error('Error fetching initial profile:', err);
       } finally {
         if (active) {
           setState({
@@ -77,28 +81,28 @@ export function useAuth() {
     });
 
     // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (_event, session) => {
-        if (!active) return;
-        let profile: Profile | null = null;
-        try {
-          if (session?.user) {
-            profile = await fetchProfile(session.user.id);
-          }
-        } catch (err) {
-          console.error("Error fetching profile on auth change:", err);
-        } finally {
-          if (active) {
-            setState({
-              user: session?.user ?? null,
-              profile,
-              session,
-              loading: false,
-            });
-          }
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      if (!active) return;
+      let profile: Profile | null = null;
+      try {
+        if (session?.user) {
+          profile = await fetchProfile(session.user.id);
+        }
+      } catch (err) {
+        console.error('Error fetching profile on auth change:', err);
+      } finally {
+        if (active) {
+          setState({
+            user: session?.user ?? null,
+            profile,
+            session,
+            loading: false,
+          });
         }
       }
-    );
+    });
 
     return () => {
       active = false;
