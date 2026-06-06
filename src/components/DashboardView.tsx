@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { MessageCircle, CheckCircle2, Upload, Target, Plus, Loader2, FolderPlus, AlertCircle, Activity } from 'lucide-react';
+import { MessageCircle, CheckCircle2, Upload, Target, Plus, Loader2, FolderPlus, AlertCircle, Activity, RefreshCw } from 'lucide-react';
 import { getActiveProjects } from '@/services/projectService';
 import { getPendingTasks, addQuickTask, toggleTaskDone } from '@/services/taskService';
 import { getRecentActivity } from '@/services/activityService';
@@ -123,6 +123,7 @@ export function DashboardView() {
   const [activity, setActivity] = useState<ActivityLog[]>([]);
   const [weeklyStats, setWeeklyStats] = useState<WeeklyStats | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [addingTask, setAddingTask] = useState(false);
   const [newTaskTitle, setNewTaskTitle] = useState('');
 
@@ -130,6 +131,7 @@ export function DashboardView() {
 
   const loadDashboard = useCallback(async () => {
     setLoading(true);
+    setError(null);
     try {
       const [proj, tasks, act, stats] = await Promise.all([
         getActiveProjects(),
@@ -141,8 +143,9 @@ export function DashboardView() {
       setPendingTasks(tasks);
       setActivity(act);
       setWeeklyStats(stats);
-    } catch (err) {
+    } catch (err: any) {
       console.error('Dashboard load error:', err);
+      setError(err?.message || 'Error al cargar el dashboard. Intente de nuevo.');
     } finally {
       setLoading(false);
     }
@@ -201,6 +204,22 @@ export function DashboardView() {
         </h2>
         <p className="text-base text-on-surface-variant">Here's today's summary for your projects.</p>
       </section>
+
+      {/* Error Banner */}
+      {error && (
+        <div className="mb-6 p-4 bg-red-50 border border-soft-terracotta/20 rounded-xl flex items-start gap-3">
+          <AlertCircle className="w-5 h-5 text-soft-terracotta flex-shrink-0 mt-0.5" />
+          <div className="flex-1">
+            <p className="text-sm text-soft-terracotta">{error}</p>
+            <button
+              onClick={loadDashboard}
+              className="mt-2 text-xs font-semibold text-petroleum-blue hover:underline flex items-center gap-1 cursor-pointer"
+            >
+              <RefreshCw className="w-3.5 h-3.5" /> Reintentar
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Bento Grid Dashboard */}
       <div className="grid grid-cols-12 gap-4">

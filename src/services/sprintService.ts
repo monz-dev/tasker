@@ -11,7 +11,7 @@ export async function getSprintsByProject(projectId: string): Promise<Sprint[]> 
 
   if (error) {
     console.error('Error fetching sprints by project:', error);
-    return [];
+    throw new Error(`Error al cargar sprints: ${error.message}`);
   }
 
   return (data as Sprint[]) ?? [];

@@ -6,7 +6,7 @@ export async function getPendingTasks(limit = 10): Promise<PendingTask[]> {
 
   if (error) {
     console.error('Error fetching pending tasks:', error);
-    return [];
+    throw new Error(`Error al cargar tareas: ${error.message}`);
   }
 
   return (data as PendingTask[]) ?? [];
@@ -23,7 +23,7 @@ export async function getTasksByProject(projectId: string): Promise<Task[]> {
 
   if (error) {
     console.error('Error fetching tasks by project:', error);
-    return [];
+    throw new Error(`Error al cargar tareas del proyecto: ${error.message}`);
   }
 
   return (data as Task[]) ?? [];

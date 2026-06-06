@@ -27,14 +27,7 @@ const PRIORITY_LABELS = {
   urgent: "Crítica",
 };
 
-const withTimeout = <T extends unknown>(promise: Promise<T>, ms = 6000): Promise<T> => {
-  return Promise.race([
-    promise,
-    new Promise<never>((_, reject) =>
-      setTimeout(() => reject(new Error("La base de datos tardó demasiado en responder (Tiempo de espera agotado).")), ms)
-    )
-  ]);
-};
+// Timeout handled by fetch-utils in the service layer
 
 export function KanbanView() {
   const [projects, setProjects] = useState<ProjectWithMembers[]>([]);
@@ -102,14 +95,14 @@ export function KanbanView() {
     setSubmitting(true);
     setFormError(null);
     try {
-      await withTimeout(createTask({
+      await createTask({
         title: title.trim(),
         description: description.trim() || undefined,
         project_id: selectedProjectId,
         priority,
         status: defaultStatus,
         due_date: dueDate || undefined,
-      }), 6000);
+      });
 
       // Reset form
       setTitle("");
@@ -119,7 +112,7 @@ export function KanbanView() {
       setShowCreateModal(false);
 
       // Reload
-      await withTimeout(loadTasks(), 5000);
+      await loadTasks();
     } catch (err: any) {
       console.error("Error creating task:", err);
       setFormError(err.message || "Error al crear la tarea. Verifique sus permisos.");

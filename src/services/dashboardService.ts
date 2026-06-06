@@ -19,7 +19,7 @@ export async function getWeeklyStats(): Promise<WeeklyStats> {
 
   if (error) {
     console.error('Error fetching weekly stats:', error);
-    return EMPTY_STATS;
+    throw new Error(`Error al cargar estadísticas: ${error.message}`);
   }
 
   return (data as WeeklyStats) ?? EMPTY_STATS;

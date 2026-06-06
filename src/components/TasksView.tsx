@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from "react";
-import { Calendar, ChevronRight, Inbox, Plus, Star, ArrowUpRight, Loader2, AlertCircle, CheckCircle2 } from "lucide-react";
+import { Calendar, ChevronRight, Inbox, Plus, Star, ArrowUpRight, Loader2, AlertCircle, CheckCircle2, RefreshCw } from "lucide-react";
 import { getPendingTasks, addQuickTask, toggleTaskDone } from "@/services/taskService";
 import { getActiveProjects } from "@/services/projectService";
 import type { PendingTask, ProjectWithMembers } from "@/types/models";
@@ -11,15 +11,6 @@ const PRIORITY_BORDER_COLORS = {
   high: "border-dim-amber",
   medium: "border-petroleum-blue",
   low: "border-sage-accent",
-};
-
-const withTimeout = <T extends unknown>(promise: Promise<T>, ms = 6000): Promise<T> => {
-  return Promise.race([
-    promise,
-    new Promise<never>((_, reject) =>
-      setTimeout(() => reject(new Error("La base de datos tardó demasiado en responder (Tiempo de espera agotado).")), ms)
-    )
-  ]);
 };
 
 export function TasksView() {
@@ -34,15 +25,15 @@ export function TasksView() {
     setLoading(true);
     setError(null);
     try {
-      const [proj, tasks] = await withTimeout(Promise.all([
+      const [proj, tasks] = await Promise.all([
         getActiveProjects(),
         getPendingTasks(),
-      ]), 6000);
+      ]);
       setProjects(proj);
       setPendingTasks(tasks);
     } catch (err: any) {
       console.error("Error loading tasks view:", err);
-      setError("No se pudieron cargar las tareas. Intente de nuevo o recargue la página.");
+      setError(err?.message || "No se pudieron cargar las tareas. Intente de nuevo.");
     } finally {
       setLoading(false);
     }
@@ -57,12 +48,12 @@ export function TasksView() {
     setAddingTask(true);
     setError(null);
     try {
-      await withTimeout(addQuickTask({
+      await addQuickTask({
         title: newTaskTitle.trim(),
         project_id: projects[0].id,
-      }), 6000);
+      });
       setNewTaskTitle("");
-      const tasks = await withTimeout(getPendingTasks(), 5000);
+      const tasks = await getPendingTasks();
       setPendingTasks(tasks);
     } catch (err: any) {
       console.error("Error adding quick task:", err);
@@ -82,7 +73,7 @@ export function TasksView() {
     }
   };
 
-  const completedPercentage = pendingTasks.length > 0 ? 0 : 100; // Simplified for pending list view
+  const completedPercentage = pendingTasks.length > 0 ? 0 : 100;
 
   return (
     <div className="max-w-[1200px] mx-auto px-4 md:px-8 py-8 mb-24 md:mb-12 space-y-10">
@@ -122,9 +113,18 @@ export function TasksView() {
           </div>
         )}
         {error && (
-          <p className="text-xs text-soft-terracotta mt-2 ml-1 flex items-center gap-1">
-            <AlertCircle className="w-3.5 h-3.5" /> {error}
-          </p>
+          <div className="mt-3 p-3 bg-red-50 border border-soft-terracotta/20 rounded-xl flex items-start gap-2">
+            <AlertCircle className="w-4 h-4 text-soft-terracotta flex-shrink-0 mt-0.5" />
+            <div className="flex-1">
+              <p className="text-xs text-soft-terracotta">{error}</p>
+              <button
+                onClick={loadData}
+                className="mt-2 text-[11px] font-semibold text-petroleum-blue hover:underline flex items-center gap-1 cursor-pointer"
+              >
+                <RefreshCw className="w-3 h-3" /> Reintentar
+              </button>
+            </div>
+          </div>
         )}
       </section>
 

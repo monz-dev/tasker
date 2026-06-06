@@ -6,7 +6,7 @@ export async function getRecentActivity(limit = 15): Promise<ActivityLog[]> {
 
   if (error) {
     console.error('Error fetching recent activity:', error);
-    return [];
+    throw new Error(`Error al cargar actividad reciente: ${error.message}`);
   }
 
   return (data as ActivityLog[]) ?? [];

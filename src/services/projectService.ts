@@ -7,7 +7,7 @@ export async function getActiveProjects(): Promise<ProjectWithMembers[]> {
 
   if (error) {
     console.error('Error fetching active projects:', error);
-    return [];
+    throw new Error(`Error al cargar proyectos: ${error.message}`);
   }
 
   return (data as ProjectWithMembers[]) ?? [];

@@ -1,10 +1,16 @@
 import { createBrowserClient } from '@supabase/ssr';
 
-export const createClient = () =>
-  createBrowserClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  );
-
-// Singleton for client components
-export const supabase = createClient();
+// Singleton for client components — created once, persists across navigations
+// The @supabase/ssr client handles token refresh and session persistence automatically
+export const supabase = createBrowserClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+  {
+    auth: {
+      flowType: 'pkce',
+      autoRefreshToken: true,
+      detectSessionInUrl: true,
+      persistSession: true,
+    },
+  }
+);
