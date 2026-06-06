@@ -17,7 +17,7 @@ export async function createSupabaseServer() {
               cookieStore.set(name, value, options)
             );
           } catch {
-            // setAll called from Server Component — cookies can only be set in middleware
+            // setAll called from Server Component — cookies can only be set in the proxy
           }
         },
       },

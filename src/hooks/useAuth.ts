@@ -78,6 +78,13 @@ export function useAuth() {
           });
         }
       }
+    }).catch((err) => {
+      // Without this, a rejected getSession() leaves `loading: true` forever
+      // and the UI is stuck on a loading state with nothing in the console.
+      console.error('Error getting initial session:', err);
+      if (active) {
+        setState({ user: null, profile: null, session: null, loading: false });
+      }
     });
 
     // Listen for auth changes
