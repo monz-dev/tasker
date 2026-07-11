@@ -9,7 +9,6 @@ import {
   Menu,
   Clock,
   MoreHorizontal,
-  LayoutTemplate,
   Settings,
   LogOut,
 } from 'lucide-react';
@@ -24,7 +23,6 @@ const ROUTE_MAP = {
   kanban: '/kanban',
   tasks: '/tasks',
   timeline: '/timeline',
-  agile: '/agile',
   settings: '/settings',
 } as const;
 
@@ -87,7 +85,6 @@ export function Navigation() {
         <NavItem icon={<LayoutDashboard className="w-6 h-6" />} label="Dash" isActive={isActive('dashboard')} onClick={() => navigate('dashboard')} />
         <NavItem icon={<KanbanSquare className="w-6 h-6" />} label="Kanban" isActive={isActive('kanban')} onClick={() => navigate('kanban')} />
         <NavItem icon={<CheckCircle2 className="w-6 h-6" />} label="Tasks" isActive={isActive('tasks')} onClick={() => navigate('tasks')} />
-        <NavItem icon={<LayoutTemplate className="w-6 h-6" />} label="Agile" isActive={isActive('agile')} onClick={() => navigate('agile')} />
 
         <button
           onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
@@ -132,8 +129,6 @@ export function Navigation() {
           <SidebarIcon icon={<KanbanSquare />} title="Kanban" isActive={isActive('kanban')} onClick={() => navigate('kanban')} />
           <SidebarIcon icon={<CheckCircle2 />} title="Mis Tareas" isActive={isActive('tasks')} onClick={() => navigate('tasks')} />
           <SidebarIcon icon={<Clock />} title="Timeline" isActive={isActive('timeline')} onClick={() => navigate('timeline')} />
-          <div className="w-8 h-px bg-outline-variant/30 mx-auto my-1"></div>
-          <SidebarIcon icon={<LayoutTemplate />} title="Agile Sprints" isActive={isActive('agile')} onClick={() => navigate('agile')} />
         </div>
         <div className="mt-auto w-full px-3 space-y-2">
           <SidebarIcon icon={<Settings />} title="Configuración" isActive={isActive('settings')} onClick={() => navigate('settings')} />
