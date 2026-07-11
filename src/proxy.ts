@@ -30,20 +30,37 @@ export async function proxy(request: NextRequest) {
   } = await supabase.auth.getUser();
 
   const isAuthRoute = request.nextUrl.pathname.startsWith('/login');
+  const isAcceptInvitationRoute = request.nextUrl.pathname.startsWith('/accept-invitation');
   const isPublicAsset =
     request.nextUrl.pathname.startsWith('/_next') ||
     request.nextUrl.pathname.startsWith('/favicon');
 
-  if (!user && !isAuthRoute && !isPublicAsset) {
+  if (!user && !isAuthRoute && !isAcceptInvitationRoute && !isPublicAsset) {
     const url = request.nextUrl.clone();
+    const redirectTo = request.nextUrl.pathname + request.nextUrl.search;
     url.pathname = '/login';
+    url.searchParams.set('redirectTo', redirectTo);
     return NextResponse.redirect(url);
   }
 
   if (user && isAuthRoute) {
+    const redirectTo = request.nextUrl.searchParams.get('redirectTo');
     const url = request.nextUrl.clone();
-    url.pathname = '/dashboard';
-    return NextResponse.redirect(url);
+    if (redirectTo) {
+      // Parse the relative URL safely
+      try {
+        const targetUrl = new URL(redirectTo, request.url);
+        return NextResponse.redirect(targetUrl);
+      } catch {
+        url.pathname = '/dashboard';
+        url.search = '';
+        return NextResponse.redirect(url);
+      }
+    } else {
+      url.pathname = '/dashboard';
+      url.search = '';
+      return NextResponse.redirect(url);
+    }
   }
 
   return supabaseResponse;
@@ -54,3 +71,4 @@ export const config = {
     '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
   ],
 };
+

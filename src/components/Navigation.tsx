@@ -45,7 +45,7 @@ export function Navigation() {
 
   const handleSignOut = async () => {
     await signOut();
-    router.push('/login');
+    window.location.href = '/login';
   };
 
   return (
@@ -106,7 +106,7 @@ export function Navigation() {
           <SidebarItem icon={<Settings className="w-5 h-5 mr-3" />} label="Configuración" isActive={isActive('settings')} onClick={() => navigate('settings')} />
           <>
             <div className="w-full h-px bg-outline-variant/30 my-1" />
-            <SidebarItem icon={<LogOut className="w-5 h-5 mr-3" />} label="Sign out" isActive={false} onClick={handleSignOut} />
+            <SidebarItem icon={<LogOut className="w-5 h-5 mr-3" />} label="Cerrar sesión" isActive={false} onClick={handleSignOut} />
           </>
         </div>
       )}
@@ -140,7 +140,7 @@ export function Navigation() {
           <button
             onClick={handleSignOut}
             className="p-3 w-full flex items-center justify-center text-on-surface-variant hover:bg-error-container/50 hover:text-error rounded-xl transition-all"
-            title="Sign out"
+            title="Cerrar sesión"
           >
             <LogOut className="w-5 h-5" />
           </button>

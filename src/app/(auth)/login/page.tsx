@@ -1,12 +1,16 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { supabase } from '@/lib/supabase/client';
 import { Loader2 } from 'lucide-react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 
-export default function LoginPage() {
+function LoginForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const redirectTo = searchParams ? searchParams.get('redirectTo') : null;
+  const emailParam = searchParams ? searchParams.get('email') : null;
+
   const [mode, setMode] = useState<'login' | 'register'>('login');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -14,6 +18,12 @@ export default function LoginPage() {
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [registered, setRegistered] = useState(false);
+
+  useEffect(() => {
+    if (emailParam) {
+      setEmail(emailParam);
+    }
+  }, [emailParam]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -26,7 +36,7 @@ export default function LoginPage() {
         if (error) {
           setError(error.message);
         } else {
-          router.push('/dashboard');
+          router.push(redirectTo || '/dashboard');
           router.refresh();
         }
       } else {
@@ -40,6 +50,7 @@ export default function LoginPage() {
           password,
           options: {
             data: { full_name: fullName },
+            emailRedirectTo: redirectTo ? `${window.location.origin}/login?redirectTo=${encodeURIComponent(redirectTo)}` : undefined,
           },
         });
         if (error) {
@@ -178,3 +189,16 @@ export default function LoginPage() {
     </div>
   );
 }
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-warm-white flex items-center justify-center">
+        <Loader2 className="w-8 h-8 text-sage-accent animate-spin" />
+      </div>
+    }>
+      <LoginForm />
+    </Suspense>
+  );
+}
+
