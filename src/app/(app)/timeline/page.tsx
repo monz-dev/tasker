@@ -1,7 +1,7 @@
 import { TimelineView } from '@/components/TimelineView';
 
 export const metadata = {
-  title: 'Timeline — Stone & Sage',
+  title: 'Timeline — Tasker',
 };
 
 export default function TimelinePage() {

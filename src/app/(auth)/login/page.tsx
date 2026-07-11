@@ -95,7 +95,7 @@ function LoginForm() {
       <div className="w-full max-w-sm">
         {/* Brand */}
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-semibold text-petroleum-blue tracking-tight mb-1">Stone &amp; Sage</h1>
+          <h1 className="text-3xl font-semibold text-petroleum-blue tracking-tight mb-1">Tasker</h1>
           <p className="text-sm text-on-surface-variant">Project Management</p>
         </div>
 

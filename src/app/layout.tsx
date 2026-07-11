@@ -2,8 +2,8 @@ import type { Metadata } from 'next';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'Stone & Sage — Project Management',
-  description: 'Manage your projects, tasks, and sprints with Stone & Sage.',
+  title: 'Tasker — Project Management',
+  description: 'Manage your projects, tasks, and sprints with Tasker.',
   icons: {
     icon: '/favicon.svg',
   },

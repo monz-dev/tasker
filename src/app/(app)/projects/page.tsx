@@ -1,7 +1,7 @@
 import { ProjectsView } from '@/components/ProjectsView';
 
 export const metadata = {
-  title: 'Projects — Stone & Sage',
+  title: 'Projects — Tasker',
 };
 
 export default function ProjectsPage() {
