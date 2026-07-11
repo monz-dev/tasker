@@ -5,6 +5,7 @@ import { Calendar, ChevronRight, Inbox, Plus, Star, ArrowUpRight, Loader2, Alert
 import { getPendingTasks, addQuickTask, toggleTaskDone } from "@/services/taskService";
 import { getActiveProjects } from "@/services/projectService";
 import type { PendingTask, ProjectWithMembers } from "@/types/models";
+import { useAuth } from "@/hooks/useAuth";
 
 const PRIORITY_BORDER_COLORS = {
   urgent: "border-soft-terracotta",
@@ -14,6 +15,7 @@ const PRIORITY_BORDER_COLORS = {
 };
 
 export function TasksView() {
+  const { loading: authLoading } = useAuth();
   const [projects, setProjects] = useState<ProjectWithMembers[]>([]);
   const [pendingTasks, setPendingTasks] = useState<PendingTask[]>([]);
   const [loading, setLoading] = useState(true);
@@ -40,8 +42,10 @@ export function TasksView() {
   }, []);
 
   useEffect(() => {
-    loadData();
-  }, [loadData]);
+    if (!authLoading) {
+      loadData();
+    }
+  }, [authLoading, loadData]);
 
   const handleAddTask = async () => {
     if (!newTaskTitle.trim() || projects.length === 0) return;

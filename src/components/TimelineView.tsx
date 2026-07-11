@@ -5,6 +5,7 @@ import { ChevronDown, Calendar, Loader2, AlertCircle, Clock } from "lucide-react
 import { getActiveProjects } from "@/services/projectService";
 import { getTasksByProject } from "@/services/taskService";
 import type { ProjectWithMembers, Task } from "@/types/models";
+import { useAuth } from "@/hooks/useAuth";
 
 const STATUS_COLORS = {
   todo: "bg-soft-terracotta/90",
@@ -33,6 +34,7 @@ function formatDateStr(date: Date) {
 }
 
 export function TimelineView() {
+  const { loading: authLoading } = useAuth();
   const [projects, setProjects] = useState<ProjectWithMembers[]>([]);
   const [selectedProjectId, setSelectedProjectId] = useState<string>("");
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -56,8 +58,10 @@ export function TimelineView() {
   }, []);
 
   useEffect(() => {
-    loadProjects();
-  }, [loadProjects]);
+    if (!authLoading) {
+      loadProjects();
+    }
+  }, [authLoading, loadProjects]);
 
   // Load tasks for selected project
   const loadTasks = useCallback(async () => {

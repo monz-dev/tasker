@@ -6,6 +6,7 @@ import { CheckCircle2, Clock, MessageSquare, MoreVertical, PlusCircle, AlertCirc
 import { getActiveProjects } from "@/services/projectService";
 import { getTasksByProject, createTask, updateTaskStatus, softDeleteTask } from "@/services/taskService";
 import type { ProjectWithMembers, Task } from "@/types/models";
+import { useAuth } from "@/hooks/useAuth";
 
 const COLUMNS = [
   { id: "todo" as const, label: "Por Hacer", color: "bg-soft-terracotta" },
@@ -31,6 +32,7 @@ const PRIORITY_LABELS = {
 // Timeout handled by fetch-utils in the service layer
 
 export function KanbanView() {
+  const { loading: authLoading } = useAuth();
   const searchParams = useSearchParams();
   const projectIdParam = searchParams?.get('projectId') || null;
 
@@ -75,8 +77,10 @@ export function KanbanView() {
   }, [projectIdParam]);
 
   useEffect(() => {
-    loadProjects();
-  }, [loadProjects]);
+    if (!authLoading) {
+      loadProjects();
+    }
+  }, [authLoading, loadProjects]);
 
   // Fetch tasks when selected project changes
   const loadTasks = useCallback(async () => {

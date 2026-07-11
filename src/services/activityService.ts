@@ -1,8 +1,9 @@
 import { supabase } from '@/lib/supabase/client';
+import { fetchWithRetry } from '@/lib/fetch-utils';
 import type { ActivityLog } from '@/types/models';
 
 export async function getRecentActivity(limit = 15): Promise<ActivityLog[]> {
-  const { data, error } = await supabase.rpc('get_recent_activity', { p_limit: limit });
+  const { data, error } = await fetchWithRetry(() => supabase.rpc('get_recent_activity', { p_limit: limit }));
 
   if (error) {
     console.error('Error fetching recent activity:', error);
@@ -25,10 +26,10 @@ export async function logActivity(entry: {
   } = await supabase.auth.getUser();
   if (!user) throw new Error('Not authenticated');
 
-  const { error } = await supabase.from('activity_log').insert({
+  const { error } = await fetchWithRetry(() => supabase.from('activity_log').insert({
     ...entry,
     user_id: user.id,
-  });
+  }));
 
   if (error) throw error;
 }

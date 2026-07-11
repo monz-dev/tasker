@@ -7,8 +7,10 @@ import { getSprintsByProject, createSprint } from "@/services/sprintService";
 import { getActiveProjects } from "@/services/projectService";
 import { getTasksByProject, createTask, updateTaskSprint as dbUpdateTaskSprint } from "@/services/taskService";
 import { Task, ProjectWithMembers } from "@/types/models";
+import { useAuth } from "@/hooks/useAuth";
 
 export function AgileView() {
+  const { loading: authLoading } = useAuth();
   const { sprints, tasks, setSprints, setTasks, addSprint, addTask, updateTaskSprint } = useAppStore();
   const [loading, setLoading] = useState(true);
   const [projects, setProjects] = useState<ProjectWithMembers[]>([]);
@@ -27,8 +29,10 @@ export function AgileView() {
       }
       setLoading(false);
     }
-    loadInitialData();
-  }, []);
+    if (!authLoading) {
+      loadInitialData();
+    }
+  }, [authLoading]);
 
   useEffect(() => {
     async function loadProjectData() {
