@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from "react";
+import { useSearchParams } from "next/navigation";
 import { CheckCircle2, Clock, MessageSquare, MoreVertical, PlusCircle, AlertCircle, X, Loader2, ArrowRight, ArrowLeft, Plus, Calendar, Trash2 } from "lucide-react";
 import { getActiveProjects } from "@/services/projectService";
 import { getTasksByProject, createTask, updateTaskStatus, softDeleteTask } from "@/services/taskService";
@@ -30,6 +31,9 @@ const PRIORITY_LABELS = {
 // Timeout handled by fetch-utils in the service layer
 
 export function KanbanView() {
+  const searchParams = useSearchParams();
+  const projectIdParam = searchParams?.get('projectId') || null;
+
   const [projects, setProjects] = useState<ProjectWithMembers[]>([]);
   const [selectedProjectId, setSelectedProjectId] = useState<string>("");
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -56,14 +60,19 @@ export function KanbanView() {
       const projs = await getActiveProjects();
       setProjects(projs);
       if (projs.length > 0) {
-        setSelectedProjectId(projs[0].id);
+        const matchingProject = projectIdParam ? projs.find(p => p.id === projectIdParam) : null;
+        if (matchingProject) {
+          setSelectedProjectId(matchingProject.id);
+        } else {
+          setSelectedProjectId(projs[0].id);
+        }
       }
     } catch (err) {
       console.error("Error fetching projects for Kanban:", err);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [projectIdParam]);
 
   useEffect(() => {
     loadProjects();

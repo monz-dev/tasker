@@ -45,7 +45,7 @@ export function SettingsView() {
 
   const handleSignOut = async () => {
     await signOut();
-    router.push('/login');
+    window.location.href = '/login';
   };
 
   return (
