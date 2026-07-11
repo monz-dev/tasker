@@ -71,7 +71,7 @@ export function Navigation() {
               )}
             </div>
             <h1 className="text-xl md:text-2xl font-semibold text-petroleum-blue tracking-tight">
-              {profile?.full_name || 'Stone & Sage'}
+              {profile?.full_name || 'Tasker'}
             </h1>
           </div>
           <div className="flex items-center gap-2">

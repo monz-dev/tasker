@@ -1,7 +1,7 @@
 import { SettingsView } from '@/components/SettingsView';
 
 export const metadata = {
-  title: 'Settings — Stone & Sage',
+  title: 'Settings — Tasker',
 };
 
 export default function SettingsPage() {

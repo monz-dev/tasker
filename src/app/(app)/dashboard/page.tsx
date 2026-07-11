@@ -1,7 +1,7 @@
 import { DashboardView } from '@/components/DashboardView';
 
 export const metadata = {
-  title: 'Dashboard — Stone & Sage',
+  title: 'Dashboard — Tasker',
 };
 
 export default function DashboardPage() {

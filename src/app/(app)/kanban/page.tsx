@@ -3,7 +3,7 @@ import { Loader2 } from 'lucide-react';
 import { KanbanView } from '@/components/KanbanView';
 
 export const metadata = {
-  title: 'Kanban — Stone & Sage',
+  title: 'Kanban — Tasker',
 };
 
 export default function KanbanPage() {
