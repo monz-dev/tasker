@@ -8,5 +8,7 @@ coverage/
 .env*
 !.env.example
 .vercel/
-.atl/
+.atl/*
+.pi/*
+
 
