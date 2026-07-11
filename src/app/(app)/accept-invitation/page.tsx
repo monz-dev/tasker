@@ -41,7 +41,8 @@ function AcceptInvitationContent() {
   }, [invitationId]);
 
   const handleAccept = async () => {
-    if (!invitationId) return;
+    if (!invitationId || !invitation) return;
+    const projectId = invitation.project_id;
     setAccepting(true);
     setError(null);
     try {
@@ -49,7 +50,7 @@ function AcceptInvitationContent() {
       setAccepted(true);
       // Wait a moment for success state visualization, then redirect
       setTimeout(() => {
-        router.push(`/kanban?projectId=${invitation.project_id}`);
+        router.push(`/kanban?projectId=${projectId}`);
       }, 1500);
     } catch (err: any) {
       console.error('Error accepting invitation:', err);
