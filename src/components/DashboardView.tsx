@@ -117,7 +117,7 @@ function ActivitySkeleton() {
 }
 
 export function DashboardView() {
-  const { user, profile } = useAuth();
+  const { user, profile, loading: authLoading } = useAuth();
   const [projects, setProjects] = useState<ProjectWithMembers[]>([]);
   const [pendingTasks, setPendingTasks] = useState<PendingTask[]>([]);
   const [activity, setActivity] = useState<ActivityLog[]>([]);
@@ -152,8 +152,10 @@ export function DashboardView() {
   }, []);
 
   useEffect(() => {
-    loadDashboard();
-  }, [loadDashboard]);
+    if (!authLoading) {
+      loadDashboard();
+    }
+  }, [authLoading, loadDashboard]);
 
   const handleAddTask = async () => {
     if (!newTaskTitle.trim() || projects.length === 0) return;

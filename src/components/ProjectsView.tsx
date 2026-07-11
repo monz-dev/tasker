@@ -5,9 +5,11 @@ import { Calendar, MoreVertical, Plus, Search, Loader2, X, AlertCircle, Trash2, 
 import { getActiveProjects, createProject, updateProjectProgress, updateProjectStatus, softDeleteProject } from "@/services/projectService";
 import { createInvitation } from "@/services/invitationService";
 import type { ProjectWithMembers } from "@/types/models";
+import { useAuth } from "@/hooks/useAuth";
 
 
 export function ProjectsView() {
+  const { loading: authLoading } = useAuth();
   const [projects, setProjects] = useState<ProjectWithMembers[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [loading, setLoading] = useState(true);
@@ -71,8 +73,10 @@ export function ProjectsView() {
   }, []);
 
   useEffect(() => {
-    loadProjects();
-  }, [loadProjects]);
+    if (!authLoading) {
+      loadProjects();
+    }
+  }, [authLoading, loadProjects]);
 
   // Handle create project
   const handleCreateProject = async (e: React.FormEvent) => {

@@ -1,9 +1,10 @@
 import { supabase } from '@/lib/supabase/client';
 import type { ProjectWithMembers } from '@/types/models';
 import { logActivity } from './activityService';
+import { fetchWithRetry } from '@/lib/fetch-utils';
 
 export async function getActiveProjects(): Promise<ProjectWithMembers[]> {
-  const { data, error } = await supabase.rpc('get_active_projects_summary');
+  const { data, error } = await fetchWithRetry(() => supabase.rpc('get_active_projects_summary'));
 
   if (error) {
     console.error('Error fetching active projects:', error);
@@ -24,7 +25,7 @@ export async function createProject(project: {
   } = await supabase.auth.getUser();
   if (!user) throw new Error('Not authenticated');
 
-  const { data, error } = await supabase
+  const { data, error } = await fetchWithRetry(() => supabase
     .from('projects')
     .insert({
       ...project,
@@ -33,7 +34,7 @@ export async function createProject(project: {
       progress: 0,
     })
     .select()
-    .single();
+    .single());
 
   if (error) throw error;
 
@@ -54,13 +55,13 @@ export async function createProject(project: {
 }
 
 export async function updateProjectProgress(projectId: string, progress: number) {
-  const { error } = await supabase
+  const { error } = await fetchWithRetry(() => supabase
     .from('projects')
     .update({
       progress,
       status: progress >= 100 ? 'completed' : 'active',
     })
-    .eq('id', projectId);
+    .eq('id', projectId));
 
   if (error) throw error;
 }
@@ -69,24 +70,24 @@ export async function updateProjectStatus(
   projectId: string,
   status: 'active' | 'completed' | 'delayed' | 'archived'
 ) {
-  const { error } = await supabase
+  const { error } = await fetchWithRetry(() => supabase
     .from('projects')
     .update({
       status,
       updated_at: new Date().toISOString(),
     })
-    .eq('id', projectId);
+    .eq('id', projectId));
 
   if (error) throw error;
 }
 
 export async function softDeleteProject(projectId: string) {
-  const { error } = await supabase
+  const { error } = await fetchWithRetry(() => supabase
     .from('projects')
     .update({
       deleted_at: new Date().toISOString(),
     })
-    .eq('id', projectId);
+    .eq('id', projectId));
 
   if (error) throw error;
 }

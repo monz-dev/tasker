@@ -1,13 +1,14 @@
 import { supabase } from '@/lib/supabase/client';
+import { fetchWithRetry } from '@/lib/fetch-utils';
 import type { Sprint } from '@/types/models';
 
 export async function getSprintsByProject(projectId: string): Promise<Sprint[]> {
-  const { data, error } = await supabase
+  const { data, error } = await fetchWithRetry(() => supabase
     .from('sprints')
     .select('*')
     .eq('project_id', projectId)
     .is('deleted_at', null)
-    .order('start_date', { ascending: false });
+    .order('start_date', { ascending: false }));
 
   if (error) {
     console.error('Error fetching sprints by project:', error);
@@ -29,7 +30,7 @@ export async function createSprint(sprint: {
   } = await supabase.auth.getUser();
   if (!user) throw new Error('Not authenticated');
 
-  const { data, error } = await supabase
+  const { data, error } = await fetchWithRetry(() => supabase
     .from('sprints')
     .insert({
       name: sprint.name,
@@ -40,7 +41,7 @@ export async function createSprint(sprint: {
       created_by: user.id,
     })
     .select()
-    .single();
+    .single());
 
   if (error) throw error;
   return data;
@@ -50,10 +51,10 @@ export async function updateSprintStatus(
   sprintId: string,
   status: 'planned' | 'active' | 'completed'
 ) {
-  const { error } = await supabase
+  const { error } = await fetchWithRetry(() => supabase
     .from('sprints')
     .update({ status })
-    .eq('id', sprintId);
+    .eq('id', sprintId));
 
   if (error) throw error;
 }

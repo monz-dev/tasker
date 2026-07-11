@@ -22,7 +22,7 @@ export function withTimeout<T>(promiseLike: { then: any; catch?: any }, ms = 150
  * Returns the result on first success, or throws the last error.
  */
 export async function withRetry<T>(
-  fn: () => Promise<T>,
+  fn: () => Promise<T> | any,
   retries = 2,
   baseDelayMs = 1000
 ): Promise<T> {
@@ -44,10 +44,10 @@ export async function withRetry<T>(
  * Combines retry + timeout for Supabase calls.
  * Default: 15s timeout, 2 retries with exponential backoff.
  */
-export async function fetchWithRetry<T>(
-  fn: () => Promise<T>,
+export async function fetchWithRetry<T = any>(
+  fn: () => Promise<T> | any,
   options?: { timeoutMs?: number; retries?: number }
 ): Promise<T> {
   const { timeoutMs = 15000, retries = 2 } = options ?? {};
-  return withRetry(() => withTimeout(fn(), timeoutMs), retries);
+  return withRetry<T>(() => withTimeout<T>(fn(), timeoutMs), retries);
 }

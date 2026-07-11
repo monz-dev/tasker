@@ -1,8 +1,9 @@
 import { supabase } from '@/lib/supabase/client';
 import type { Task, PendingTask } from '@/types/models';
+import { fetchWithRetry } from '@/lib/fetch-utils';
 
 export async function getPendingTasks(limit = 10): Promise<PendingTask[]> {
-  const { data, error } = await supabase.rpc('get_pending_tasks', { p_limit: limit });
+  const { data, error } = await fetchWithRetry(() => supabase.rpc('get_pending_tasks', { p_limit: limit }));
 
   if (error) {
     console.error('Error fetching pending tasks:', error);
@@ -13,13 +14,13 @@ export async function getPendingTasks(limit = 10): Promise<PendingTask[]> {
 }
 
 export async function getTasksByProject(projectId: string): Promise<Task[]> {
-  const { data, error } = await supabase
+  const { data, error } = await fetchWithRetry(() => supabase
     .from('tasks')
     .select('*')
     .eq('project_id', projectId)
     .is('deleted_at', null)
     .order('position', { ascending: true })
-    .order('created_at', { ascending: true });
+    .order('created_at', { ascending: true }));
 
   if (error) {
     console.error('Error fetching tasks by project:', error);
@@ -43,7 +44,7 @@ export async function createTask(task: {
   } = await supabase.auth.getUser();
   if (!user) throw new Error('Not authenticated');
 
-  const { data, error } = await supabase
+  const { data, error } = await fetchWithRetry(() => supabase
     .from('tasks')
     .insert({
       title: task.title,
@@ -57,7 +58,7 @@ export async function createTask(task: {
       story_points: task.story_points,
     })
     .select()
-    .single();
+    .single());
 
   if (error) throw error;
   return data;
@@ -82,25 +83,25 @@ export async function updateTaskStatus(
   taskId: string,
   status: 'todo' | 'in_progress' | 'review' | 'done'
 ) {
-  const { error } = await supabase.from('tasks').update({ status }).eq('id', taskId);
+  const { error } = await fetchWithRetry(() => supabase.from('tasks').update({ status }).eq('id', taskId));
 
   if (error) throw error;
 }
 
 export async function updateTaskSprint(taskId: string, sprintId: string | undefined) {
-  const { error } = await supabase
+  const { error } = await fetchWithRetry(() => supabase
     .from('tasks')
     .update({ sprint_id: sprintId ?? null })
-    .eq('id', taskId);
+    .eq('id', taskId));
 
   if (error) throw error;
 }
 
 export async function softDeleteTask(taskId: string) {
-  const { error } = await supabase
+  const { error } = await fetchWithRetry(() => supabase
     .from('tasks')
     .update({ deleted_at: new Date().toISOString() })
-    .eq('id', taskId);
+    .eq('id', taskId));
 
   if (error) throw error;
 }
@@ -108,7 +109,7 @@ export async function softDeleteTask(taskId: string) {
 export async function toggleTaskDone(taskId: string, currentStatus: string) {
   const newStatus = currentStatus === 'done' ? 'todo' : 'done';
 
-  const { error } = await supabase.from('tasks').update({ status: newStatus }).eq('id', taskId);
+  const { error } = await fetchWithRetry(() => supabase.from('tasks').update({ status: newStatus }).eq('id', taskId));
 
   if (error) throw error;
   return newStatus;

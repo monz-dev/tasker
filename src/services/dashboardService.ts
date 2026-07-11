@@ -1,4 +1,5 @@
 import { supabase } from '@/lib/supabase/client';
+import { fetchWithRetry } from '@/lib/fetch-utils';
 import type { WeeklyStats } from '@/types/models';
 
 const EMPTY_STATS: WeeklyStats = {
@@ -15,7 +16,7 @@ const EMPTY_STATS: WeeklyStats = {
 };
 
 export async function getWeeklyStats(): Promise<WeeklyStats> {
-  const { data, error } = await supabase.rpc('get_weekly_stats');
+  const { data, error } = await fetchWithRetry(() => supabase.rpc('get_weekly_stats'));
 
   if (error) {
     console.error('Error fetching weekly stats:', error);
