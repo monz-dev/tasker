@@ -14,5 +14,6 @@ scratch/
 tsconfig.tsbuildinfo
 *.tsbuildinfo
 next-env.d.ts
+.codegraph/
 
 
