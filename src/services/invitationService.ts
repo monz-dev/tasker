@@ -1,4 +1,5 @@
 import { supabase } from '@/lib/supabase/client';
+import { fetchWithRetry, fetchOnce } from '@/lib/fetch-utils';
 
 export interface Invitation {
   id: string;
@@ -27,37 +28,44 @@ export async function createInvitation(
   } = await supabase.auth.getUser();
   if (!user) throw new Error('Not authenticated');
 
-  const { data, error } = await supabase
-    .from('invitations')
-    .insert({
-      project_id: projectId,
-      email: email.trim().toLowerCase(),
-      role: role,
-      invited_by: user.id,
-      status: 'pending',
-    })
-    .select()
-    .single();
+  const { data, error } = await fetchOnce<Invitation>(() =>
+    supabase
+      .from('invitations')
+      .insert({
+        project_id: projectId,
+        email: email.trim().toLowerCase(),
+        role: role,
+        invited_by: user.id,
+        status: 'pending',
+      })
+      .select()
+      .single()
+  );
 
   if (error) throw error;
-  return data;
+  return data!;
 }
 
 export async function getInvitation(invitationId: string): Promise<InvitationWithProject> {
-  const { data, error } = await supabase
-    .from('invitations')
-    .select('*, projects(name)')
-    .eq('id', invitationId)
-    .single();
+  const { data, error } = await fetchWithRetry<InvitationWithProject>(() =>
+    supabase
+      .from('invitations')
+      .select('*, projects(name)')
+      .eq('id', invitationId)
+      .single()
+  );
 
   if (error) throw error;
-  return data as InvitationWithProject;
+  return data!;
 }
 
 export async function acceptInvitation(invitationId: string): Promise<string> {
-  const { data, error } = await supabase.rpc('accept_project_invitation', {
-    p_invitation_id: invitationId,
-  });
+  // Mutations: use fetchOnce to avoid duplicate side-effects on retry
+  const { data, error } = await fetchOnce<string>(() =>
+    supabase.rpc('accept_project_invitation', {
+      p_invitation_id: invitationId,
+    })
+  );
 
   if (error) throw error;
   return data as string; // returns project_id uuid

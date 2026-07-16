@@ -122,32 +122,54 @@ export function DashboardView() {
   const [pendingTasks, setPendingTasks] = useState<PendingTask[]>([]);
   const [activity, setActivity] = useState<ActivityLog[]>([]);
   const [weeklyStats, setWeeklyStats] = useState<WeeklyStats | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loadingSections, setLoadingSections] = useState<Set<string>>(new Set(['projects', 'tasks', 'activity', 'stats']));
   const [error, setError] = useState<string | null>(null);
   const [addingTask, setAddingTask] = useState(false);
   const [newTaskTitle, setNewTaskTitle] = useState('');
 
   const displayName = profile?.full_name || user?.user_metadata?.full_name || 'Team';
 
+  /** Mark a section as done loading */
+  const markLoaded = useCallback((section: string) => {
+    setLoadingSections(prev => {
+      const next = new Set(prev);
+      next.delete(section);
+      return next;
+    });
+  }, []);
+
   const loadDashboard = useCallback(async () => {
-    setLoading(true);
+    setLoadingSections(new Set(['projects', 'tasks', 'activity', 'stats']));
     setError(null);
-    try {
-      const [proj, tasks, act, stats] = await Promise.all([
-        getActiveProjects(),
-        getPendingTasks(),
-        getRecentActivity(),
-        getWeeklyStats(),
-      ]);
-      setProjects(proj);
-      setPendingTasks(tasks);
-      setActivity(act);
-      setWeeklyStats(stats);
-    } catch (err: any) {
-      console.error('Dashboard load error:', err);
-      setError(err?.message || 'Error al cargar el dashboard. Intente de nuevo.');
-    } finally {
-      setLoading(false);
+
+    // Fire all requests in parallel; each settles independently so
+    // fast sections render immediately without waiting for slow ones.
+    const [projResult, tasksResult, actResult, statsResult] = await Promise.allSettled([
+      getActiveProjects(),
+      getPendingTasks(),
+      getRecentActivity(),
+      getWeeklyStats(),
+    ]);
+
+    // Apply successful results; leave previous state for failed ones
+    if (projResult.status === 'fulfilled') setProjects(projResult.value);
+    if (tasksResult.status === 'fulfilled') setPendingTasks(tasksResult.value);
+    if (actResult.status === 'fulfilled') setActivity(actResult.value);
+    if (statsResult.status === 'fulfilled') setWeeklyStats(statsResult.value);
+
+    // Mark all sections as loaded (skeletons disappear per-section)
+    setLoadingSections(new Set());
+
+    // Collect errors from failed services
+    const errors: string[] = [];
+    if (projResult.status === 'rejected') errors.push(`Projects: ${projResult.reason?.message ?? 'failed'}`);
+    if (tasksResult.status === 'rejected') errors.push(`Tasks: ${tasksResult.reason?.message ?? 'failed'}`);
+    if (actResult.status === 'rejected') errors.push(`Activity: ${actResult.reason?.message ?? 'failed'}`);
+    if (statsResult.status === 'rejected') errors.push(`Stats: ${statsResult.reason?.message ?? 'failed'}`);
+
+    if (errors.length > 0) {
+      console.error('Dashboard partial load errors:', errors);
+      setError(errors.join('. '));
     }
   }, []);
 
@@ -235,7 +257,7 @@ export function DashboardView() {
             </span>
           </div>
 
-          {loading ? (
+          {loadingSections.has('projects') ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <ProjectSkeleton />
               <ProjectSkeleton />
@@ -312,7 +334,7 @@ export function DashboardView() {
             </h3>
             <div className="flex items-end gap-2">
               <span className="text-5xl font-semibold leading-none tracking-tighter">
-                {loading ? '—' : weeklyStats?.total_completed ?? 0}
+                {loadingSections.has('stats') ? '—' : weeklyStats?.total_completed ?? 0}
               </span>
               <span className="text-sm opacity-80 mb-1">Tasks completed</span>
             </div>
@@ -345,7 +367,7 @@ export function DashboardView() {
         <div className="col-span-12 md:col-span-6 lg:col-span-4 bg-surface-container-lowest rounded-xl p-6 shadow-sm ring-1 ring-stone-bg/50">
           <h3 className="text-lg font-semibold text-petroleum-blue mb-4">Pending Tasks</h3>
 
-          {loading ? (
+          {loadingSections.has('tasks') ? (
             <div className="space-y-2">
               <TaskSkeleton />
               <TaskSkeleton />
@@ -419,7 +441,7 @@ export function DashboardView() {
         <div className="col-span-12 md:col-span-6 lg:col-span-8 bg-stone-bg/40 rounded-xl p-6 shadow-[inset_0_2px_4px_rgba(0,0,0,0.02)] border border-stone-bg">
           <h3 className="text-lg font-semibold text-petroleum-blue mb-6">Recent Activity</h3>
 
-          {loading ? (
+          {loadingSections.has('activity') ? (
             <div className="space-y-6">
               <ActivitySkeleton />
               <ActivitySkeleton />

@@ -25,7 +25,7 @@ export async function createProject(project: {
   } = await supabase.auth.getUser();
   if (!user) throw new Error('Not authenticated');
 
-  const { data, error } = await fetchWithRetry(() => supabase
+  const { data, error } = await fetchWithRetry<{ id: string; name: string }>(() => supabase
     .from('projects')
     .insert({
       ...project,
@@ -37,6 +37,7 @@ export async function createProject(project: {
     .single());
 
   if (error) throw error;
+  if (!data) throw new Error('Failed to create project');
 
   // Log activity
   try {
