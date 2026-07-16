@@ -8,7 +8,11 @@ coverage/
 .env*
 !.env.example
 .vercel/
-.atl/*
-.pi/*
+.atl/
+.pi/
+scratch/
+tsconfig.tsbuildinfo
+*.tsbuildinfo
+next-env.d.ts
 
 
