@@ -47,3 +47,9 @@ No hay Docker ni token de Supabase en máquina → no se puede aplicar la migrac
 3. `chore: stop tracking tsconfig build artifact` — `52f859b` (tsconfig.tsbuildinfo fuera del índice).
 4. `docs(odd): record rls-hardening commit identities` — `67cdc39`.
 5. `fix(rls): revoke leftover service_role execute grants on RPCs` — `885a73b` (migración 009, aplicada pendiente).
+
+## Estado final
+
+- PR #9 (`fix/rls-hardening` → `main`) mergeado el 2026-09-19, merge commit `2c3cfda4`. Rama contenida en `origin/main`.
+- Migraciones 008 y 009 aplicadas y verificadas en la base real.
+- Pendientes fuera de alcance (próxima iteración): gating fino de UI por rol, revisar `profiles_select_authenticated`, bloques 5-7 (realtime/caché).
