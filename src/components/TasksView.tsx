@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { Calendar, ChevronRight, Inbox, Plus, Star, ArrowUpRight, Loader2, AlertCircle, CheckCircle2, RefreshCw } from "lucide-react";
 import { getPendingTasks, addQuickTask, toggleTaskDone } from "@/services/taskService";
 import { getActiveProjects } from "@/services/projectService";
+import { getMyRole, canEditTasks } from "@/lib/project-roles";
 import type { PendingTask, ProjectWithMembers } from "@/types/models";
 import { useAuth } from "@/hooks/useAuth";
 
@@ -15,7 +16,7 @@ const PRIORITY_BORDER_COLORS = {
 };
 
 export function TasksView() {
-  const { loading: authLoading } = useAuth();
+  const { loading: authLoading, user } = useAuth();
   const [projects, setProjects] = useState<ProjectWithMembers[]>([]);
   const [pendingTasks, setPendingTasks] = useState<PendingTask[]>([]);
   const [loading, setLoading] = useState(true);
@@ -48,13 +49,13 @@ export function TasksView() {
   }, [authLoading, loadData]);
 
   const handleAddTask = async () => {
-    if (!newTaskTitle.trim() || projects.length === 0) return;
+    if (!newTaskTitle.trim() || writableProjects.length === 0) return;
     setAddingTask(true);
     setError(null);
     try {
       await addQuickTask({
         title: newTaskTitle.trim(),
-        project_id: projects[0].id,
+        project_id: writableProjects[0].id,
       });
       setNewTaskTitle("");
       const tasks = await getPendingTasks();
@@ -79,12 +80,24 @@ export function TasksView() {
 
   const completedPercentage = pendingTasks.length > 0 ? 0 : 100;
 
+  // Solo se muestran los proyectos donde el usuario puede crear tareas (excluye viewer).
+  const writableProjects = projects.filter((p) => canEditTasks(getMyRole(p, user?.id)));
+  const canQuickAdd = writableProjects.length > 0;
+
   return (
     <div className="max-w-[1200px] mx-auto px-4 md:px-8 py-8 mb-24 md:mb-12 space-y-10">
       
       {/* Quick Task Entry */}
       <section className="w-full">
-        {projects.length > 0 ? (
+        {projects.length === 0 ? (
+          <div className="bg-surface-container-lowest rounded-xl p-4 border border-dashed border-outline-variant text-center">
+            <p className="text-sm text-outline">Creá un proyecto primero desde la pestaña de Proyectos para poder añadir tareas.</p>
+          </div>
+        ) : !canQuickAdd ? (
+          <div className="bg-surface-container-lowest rounded-xl p-4 border border-dashed border-outline-variant text-center">
+            <p className="text-sm text-outline">Tenés rol de solo lectura en tus proyectos, así que no podés añadir tareas.</p>
+          </div>
+        ) : (
           <div className="bg-surface-container-lowest rounded-xl shadow-sm p-4 border border-stone-bg focus-within:ring-2 focus-within:ring-sage-accent/20 transition-all">
             <div className="flex items-center gap-3">
               {addingTask ? (
@@ -110,10 +123,6 @@ export function TasksView() {
                 Guardar
               </button>
             </div>
-          </div>
-        ) : (
-          <div className="bg-surface-container-lowest rounded-xl p-4 border border-dashed border-outline-variant text-center">
-            <p className="text-sm text-outline">Creá un proyecto primero desde la pestaña de Proyectos para poder añadir tareas.</p>
           </div>
         )}
         {error && (

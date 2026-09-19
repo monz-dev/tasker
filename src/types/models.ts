@@ -41,6 +41,7 @@ export interface ProjectWithMembers extends Project {
     user_id: string;
     full_name: string;
     avatar_url: string | null;
+    role: 'owner' | 'admin' | 'member' | 'viewer';
   }>;
 }
 
