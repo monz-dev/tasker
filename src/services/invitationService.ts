@@ -47,15 +47,27 @@ export async function createInvitation(
 }
 
 export async function getInvitation(invitationId: string): Promise<InvitationWithProject> {
-  const { data, error } = await fetchWithRetry<InvitationWithProject>(() =>
-    supabase
-      .from('invitations')
-      .select('*, projects(name)')
-      .eq('id', invitationId)
-      .single()
-  );
+  // Sessions: direct query (RLS autoriza solo al destinatario, al creador o a un admin).
+  // Anónimos: RPC público acotado por id — nunca acceso directo a la tabla.
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+
+  const query = () =>
+    session?.user
+      ? supabase
+          .from('invitations')
+          .select('*, projects(name)')
+          .eq('id', invitationId)
+          .single()
+      : supabase.rpc('get_invitation_public', {
+          p_invitation_id: invitationId,
+        });
+
+  const { data, error } = await fetchWithRetry<InvitationWithProject>(query);
 
   if (error) throw error;
+  if (!data) throw new Error('Invitación no encontrada');
   return data!;
 }
 

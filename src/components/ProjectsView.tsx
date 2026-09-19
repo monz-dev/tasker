@@ -4,12 +4,13 @@ import { useState, useEffect, useCallback } from "react";
 import { Calendar, MoreVertical, Plus, Search, Loader2, X, AlertCircle, Trash2, CheckCircle2, TrendingUp, User, Building2, UserPlus, Copy, Check } from "lucide-react";
 import { getActiveProjects, createProject, updateProjectProgress, updateProjectStatus, softDeleteProject } from "@/services/projectService";
 import { createInvitation } from "@/services/invitationService";
+import { getMyRole, canManageProject } from "@/lib/project-roles";
 import type { ProjectWithMembers } from "@/types/models";
 import { useAuth } from "@/hooks/useAuth";
 
 
 export function ProjectsView() {
-  const { loading: authLoading } = useAuth();
+  const { loading: authLoading, user } = useAuth();
   const [projects, setProjects] = useState<ProjectWithMembers[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [loading, setLoading] = useState(true);
@@ -199,6 +200,7 @@ export function ProjectsView() {
           {filteredProjects.map((project) => {
             const isCompleted = project.status === "completed";
             const isDelayed = project.status === "delayed";
+            const canManage = canManageProject(getMyRole(project, user?.id));
             
             let statusLabel = "En curso";
             let statusClass = "bg-primary-fixed text-on-primary-fixed";
@@ -225,16 +227,18 @@ export function ProjectsView() {
                       {statusLabel}
                     </span>
                     <div className="relative">
-                      <button 
-                        onClick={() => setActiveMenuId(activeMenuId === project.id ? null : project.id)}
-                        className="text-outline-variant hover:text-primary p-1 rounded-full hover:bg-stone-bg transition-colors"
-                      >
-                        <MoreVertical className="w-5 h-5" />
-                      </button>
-                      
-                      {/* Context menu */}
-                      {activeMenuId === project.id && (
+                      {canManage && (
                         <>
+                          <button 
+                            onClick={() => setActiveMenuId(activeMenuId === project.id ? null : project.id)}
+                            className="text-outline-variant hover:text-primary p-1 rounded-full hover:bg-stone-bg transition-colors"
+                          >
+                            <MoreVertical className="w-5 h-5" />
+                          </button>
+                          
+                          {/* Context menu */}
+                          {activeMenuId === project.id && (
+                            <>
                           <div className="fixed inset-0 z-40" onClick={() => setActiveMenuId(null)} />
                           <div className="absolute right-0 mt-2 w-48 bg-surface-container-lowest rounded-xl shadow-xl border border-stone-bg py-2 z-50 animate-in fade-in slide-in-from-top-2 duration-150">
                             <div className="px-3 py-1.5 text-[10px] font-bold text-outline uppercase tracking-wider">Acciones rápidas</div>
@@ -297,7 +301,9 @@ export function ProjectsView() {
                             >
                               <Trash2 className="w-4 h-4 text-soft-terracotta" /> Archivar
                             </button>
-                          </div>
+                            </div>
+                          </>
+                        )}
                         </>
                       )}
                     </div>

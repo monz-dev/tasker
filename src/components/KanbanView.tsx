@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { CheckCircle2, Clock, MessageSquare, MoreVertical, PlusCircle, AlertCircle, X, Loader2, ArrowRight, ArrowLeft, Plus, Calendar, Trash2 } from "lucide-react";
 import { getActiveProjects } from "@/services/projectService";
 import { getTasksByProject, createTask, updateTaskStatus, softDeleteTask } from "@/services/taskService";
+import { getMyRole, canEditTasks } from "@/lib/project-roles";
 import type { ProjectWithMembers, Task } from "@/types/models";
 import { useAuth } from "@/hooks/useAuth";
 
@@ -32,7 +33,7 @@ const PRIORITY_LABELS = {
 // Timeout handled by fetch-utils in the service layer
 
 export function KanbanView() {
-  const { loading: authLoading } = useAuth();
+  const { loading: authLoading, user } = useAuth();
   const searchParams = useSearchParams();
   const projectIdParam = searchParams?.get('projectId') || null;
 
@@ -138,7 +139,7 @@ export function KanbanView() {
   const handleMoveStatus = async (taskId: string, currentStatus: Task["status"], direction: "next" | "prev") => {
     const statuses: Task["status"][] = ["todo", "in_progress", "review", "done"];
     const currentIndex = statuses.indexOf(currentStatus);
-    let nextIndex = direction === "next" ? currentIndex + 1 : currentIndex - 1;
+    const nextIndex = direction === "next" ? currentIndex + 1 : currentIndex - 1;
     
     if (nextIndex >= 0 && nextIndex < statuses.length) {
       const nextStatus = statuses[nextIndex];
@@ -178,6 +179,8 @@ export function KanbanView() {
   }, {} as Record<Task["status"], Task[]>);
 
   const selectedProject = projects.find(p => p.id === selectedProjectId);
+  const memberRole = getMyRole(selectedProject, user?.id);
+  const canEdit = canEditTasks(memberRole);
 
   return (
     <div className="pt-6 pb-24 md:pb-12 min-h-screen flex flex-col">
@@ -231,13 +234,15 @@ export function KanbanView() {
                       {loadingTasks ? "..." : columnTasks.length}
                     </span>
                   </h3>
-                  <button 
-                    type="button"
-                    onClick={(e) => { e.preventDefault(); e.stopPropagation(); openCreateModalForColumn(col.id); }}
-                    className="text-outline hover:text-petroleum-blue transition-colors cursor-pointer"
-                  >
-                    <PlusCircle className="w-5 h-5" />
-                  </button>
+                  {canEdit && (
+                    <button 
+                      type="button"
+                      onClick={(e) => { e.preventDefault(); e.stopPropagation(); openCreateModalForColumn(col.id); }}
+                      className="text-outline hover:text-petroleum-blue transition-colors cursor-pointer"
+                    >
+                      <PlusCircle className="w-5 h-5" />
+                    </button>
+                  )}
                 </div>
 
                 {/* Column Body / Scroll Container */}
@@ -251,13 +256,15 @@ export function KanbanView() {
                   ) : columnTasks.length === 0 ? (
                     <div className="border border-dashed border-outline-variant/60 rounded-xl py-12 px-4 text-center flex flex-col items-center justify-center">
                       <p className="text-xs text-outline font-medium">Sin tareas</p>
-                      <button 
-                        type="button"
-                        onClick={(e) => { e.preventDefault(); e.stopPropagation(); openCreateModalForColumn(col.id); }}
-                        className="text-[10px] font-semibold text-petroleum-blue hover:underline mt-2 flex items-center gap-1 cursor-pointer"
-                      >
-                        <Plus className="w-3 h-3" /> Añadir una
-                      </button>
+                      {canEdit && (
+                        <button 
+                          type="button"
+                          onClick={(e) => { e.preventDefault(); e.stopPropagation(); openCreateModalForColumn(col.id); }}
+                          className="text-[10px] font-semibold text-petroleum-blue hover:underline mt-2 flex items-center gap-1 cursor-pointer"
+                        >
+                          <Plus className="w-3 h-3" /> Añadir una
+                        </button>
+                      )}
                     </div>
                   ) : (
                     columnTasks.map((task) => {
@@ -284,7 +291,7 @@ export function KanbanView() {
                               </button>
                               
                               {/* Task menu */}
-                              {activeMenuId === task.id && (
+                              {canEdit && activeMenuId === task.id && (
                                 <>
                                   <div className="fixed inset-0 z-40" onClick={() => setActiveMenuId(null)} />
                                   <div className="absolute right-0 mt-2 w-40 bg-surface-container-lowest rounded-xl shadow-xl border border-stone-bg py-1.5 z-50 animate-in fade-in duration-100">
@@ -313,26 +320,28 @@ export function KanbanView() {
                           {/* Card Footer */}
                           <div className="flex items-center justify-between mt-4 pt-3 border-t border-stone-bg/60">
                             {/* Move task quick actions */}
-                            <div className="flex gap-1.5">
-                              {task.status !== "todo" && (
-                                <button 
-                                  onClick={() => handleMoveStatus(task.id, task.status, "prev")}
-                                  className="p-1 rounded-md bg-stone-bg/60 text-outline hover:text-primary hover:bg-stone-bg transition-all cursor-pointer"
-                                  title="Mover a columna anterior"
-                                >
-                                  <ArrowLeft className="w-3 h-3" />
-                                </button>
-                              )}
-                              {task.status !== "done" && (
-                                <button 
-                                  onClick={() => handleMoveStatus(task.id, task.status, "next")}
-                                  className="p-1 rounded-md bg-stone-bg/60 text-outline hover:text-primary hover:bg-stone-bg transition-all cursor-pointer"
-                                  title="Mover a columna siguiente"
-                                >
-                                  <ArrowRight className="w-3 h-3" />
-                                </button>
-                              )}
-                            </div>
+                            {canEdit && (
+                              <div className="flex gap-1.5">
+                                {task.status !== "todo" && (
+                                  <button 
+                                    onClick={() => handleMoveStatus(task.id, task.status, "prev")}
+                                    className="p-1 rounded-md bg-stone-bg/60 text-outline hover:text-primary hover:bg-stone-bg transition-all cursor-pointer"
+                                    title="Mover a columna anterior"
+                                  >
+                                    <ArrowLeft className="w-3 h-3" />
+                                  </button>
+                                )}
+                                {task.status !== "done" && (
+                                  <button 
+                                    onClick={() => handleMoveStatus(task.id, task.status, "next")}
+                                    className="p-1 rounded-md bg-stone-bg/60 text-outline hover:text-primary hover:bg-stone-bg transition-all cursor-pointer"
+                                    title="Mover a columna siguiente"
+                                  >
+                                    <ArrowRight className="w-3 h-3" />
+                                  </button>
+                                )}
+                              </div>
+                            )}
 
                             {/* Due Date Indicator */}
                             {task.due_date ? (
@@ -356,7 +365,7 @@ export function KanbanView() {
       )}
 
       {/* Floating Action Button (Quick add task) */}
-      {!loading && projects.length > 0 && (
+      {!loading && projects.length > 0 && canEdit && (
         <button 
           onClick={() => openCreateModalForColumn("todo")}
           className="fixed bottom-24 right-6 md:bottom-8 md:right-8 w-14 h-14 bg-petroleum-blue text-white rounded-2xl shadow-lg flex items-center justify-center hover:bg-primary hover:-translate-y-1 transition-all duration-200 z-40 group cursor-pointer"
