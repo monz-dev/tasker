@@ -40,7 +40,8 @@ No hay Docker ni token de Supabase en máquina → no se puede aplicar la migrac
 - TS: `npx tsc --noEmit` + `npx vitest run`.
 - Cuando exista acceso: `supabase db push` y probar el flujo invitar→aceptar y los roles viewer/member en el kanban.
 
-## Commits esperados
+## Commits
 
-1. `fix(rls): harden row-level security policies and invitation expiry` — migración 008.
-2. `fix(rls): gate UI actions by project role and route guest invitations through public RPC` — types, service, vistas.
+1. `fix(rls): harden row-level security and invitation expiry` — `13b99a4` (migración 008).
+2. `fix(rls): gate UI actions by project role and route guest invitations through public RPC` — `e55c553` (types, service, vistas).
+3. `chore: stop tracking tsconfig build artifact` — `52f859b` (tsconfig.tsbuildinfo fuera del índice).
