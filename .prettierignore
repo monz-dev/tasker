@@ -1,0 +1,16 @@
+node_modules/
+.next/
+out/
+dist/
+build/
+.next-turbo/
+
+# Build artifacts
+*.tsbuildinfo
+next-env.d.ts
+
+# Generated / external
+package-lock.json
+supabase/
+scratch/
+public/
