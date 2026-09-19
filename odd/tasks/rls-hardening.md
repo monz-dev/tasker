@@ -45,3 +45,5 @@ No hay Docker ni token de Supabase en máquina → no se puede aplicar la migrac
 1. `fix(rls): harden row-level security and invitation expiry` — `13b99a4` (migración 008).
 2. `fix(rls): gate UI actions by project role and route guest invitations through public RPC` — `e55c553` (types, service, vistas).
 3. `chore: stop tracking tsconfig build artifact` — `52f859b` (tsconfig.tsbuildinfo fuera del índice).
+4. `docs(odd): record rls-hardening commit identities` — `67cdc39`.
+5. `fix(rls): revoke leftover service_role execute grants on RPCs` — `885a73b` (migración 009, aplicada pendiente).
